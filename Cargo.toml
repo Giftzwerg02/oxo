@@ -6,3 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread", "signal"] }
+poise = "0.5.2"
+dotenvy = "0.15.6"
+songbird = { version = "0.3.0", features = ["yt-dlp"]}
+
+[dependencies.serenity]
+default-features = false
+features = [
+    "builder",
+    "chrono",
+    "client",
+    "gateway",
+    "http",
+    "model",
+    "cache",
+    "utils",
+    "rustls_backend",
+]
+version = "0.11"
