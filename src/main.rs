@@ -6,7 +6,7 @@ struct Data {} // User data, which is stored and accessible in all command invoc
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-/// Jam
+/// Jamming
 #[poise::command(slash_command, prefix_command)]
 async fn play(
     ctx: Context<'_>,
