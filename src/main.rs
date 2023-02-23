@@ -1,17 +1,17 @@
-use std::{path::Path, sync::Arc};
+use std::{sync::Arc};
 
 use dotenvy::dotenv;
 use poise::{
     async_trait,
     serenity_prelude::{
-        self as serenity, CacheHttp, ChannelId, EmbedImage, Http, Message, Mutex, Timestamp,
+        self as serenity, ChannelId, Http, Mutex,
     },
     FrameworkError,
 };
-use songbird::{tracks::Track, Call, Event, EventContext, EventHandler, SerenityInit, TrackEvent};
+use songbird::{Call, Event, EventContext, EventHandler, SerenityInit, TrackEvent};
 mod error;
-use error::{error_embed, Error};
-use tracing::{info, debug, warn, error, trace};
+use error::{error_embed, Error, log_unexpected_error};
+use tracing::{debug};
 
 struct Data {} // User data, which is stored and accessible in all command invocations
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -31,11 +31,12 @@ impl EventHandler for LeaveAfterEndEventHandler {
         let res = handler.leave().await;
 
         if let Err(err) = res {
-            self.channel_id
+            if let Err(err_err) = self.channel_id
                 .send_message(&self.http, |create| {
                     create.embed(|e| error_embed(e, &err.into()))
-                })
-                .await;
+                }).await {
+                    log_unexpected_error(&err_err.to_string())
+                };
         }
 
         None
@@ -86,62 +87,62 @@ async fn play(
 async fn on_error(error: FrameworkError<'_, Data, Error>) {
     let res = match error {
         FrameworkError::Setup {
-            error,
-            framework,
-            data_about_bot,
-            ctx,
+            error: _,
+            framework: _,
+            data_about_bot: _,
+            ctx: _,
         } => todo!(),
         FrameworkError::EventHandler {
-            error,
-            ctx,
-            event,
-            framework,
+            error: _,
+            ctx: _,
+            event: _,
+            framework: _,
         } => todo!(),
         FrameworkError::Command { error, ctx } => {
-            error!(error = error, "Unexpected error occured");
+            log_unexpected_error(&error);
 
             ctx.send(|create| create.embed(|e| error_embed(e, &error)))
                 .await
         }
-        FrameworkError::ArgumentParse { error, input, ctx } => todo!(),
-        FrameworkError::CommandStructureMismatch { description, ctx } => todo!(),
+        FrameworkError::ArgumentParse { error: _, input: _, ctx: _ } => todo!(),
+        FrameworkError::CommandStructureMismatch { description: _, ctx: _ } => todo!(),
         FrameworkError::CooldownHit {
-            remaining_cooldown,
-            ctx,
+            remaining_cooldown: _,
+            ctx: _,
         } => todo!(),
         FrameworkError::MissingBotPermissions {
-            missing_permissions,
-            ctx,
+            missing_permissions: _,
+            ctx: _,
         } => todo!(),
         FrameworkError::MissingUserPermissions {
-            missing_permissions,
-            ctx,
+            missing_permissions: _,
+            ctx: _,
         } => todo!(),
-        FrameworkError::NotAnOwner { ctx } => todo!(),
-        FrameworkError::GuildOnly { ctx } => todo!(),
-        FrameworkError::DmOnly { ctx } => todo!(),
-        FrameworkError::NsfwOnly { ctx } => todo!(),
-        FrameworkError::CommandCheckFailed { error, ctx } => todo!(),
-        FrameworkError::DynamicPrefix { error, ctx, msg } => todo!(),
+        FrameworkError::NotAnOwner { ctx: _ } => todo!(),
+        FrameworkError::GuildOnly { ctx: _ } => todo!(),
+        FrameworkError::DmOnly { ctx: _ } => todo!(),
+        FrameworkError::NsfwOnly { ctx: _ } => todo!(),
+        FrameworkError::CommandCheckFailed { error: _, ctx: _ } => todo!(),
+        FrameworkError::DynamicPrefix { error: _, ctx: _, msg: _ } => todo!(),
         FrameworkError::UnknownCommand {
-            ctx,
-            msg,
-            prefix,
-            msg_content,
-            framework,
-            invocation_data,
-            trigger,
+            ctx: _,
+            msg: _,
+            prefix: _,
+            msg_content: _,
+            framework: _,
+            invocation_data: _,
+            trigger: _,
         } => todo!(),
         FrameworkError::UnknownInteraction {
-            ctx,
-            framework,
-            interaction,
+            ctx: _,
+            framework: _,
+            interaction: _,
         } => todo!(),
         _ => todo!(),
     };
 
     if let Err(err_err) = res {
-        tracing::error!(error = err_err.to_string(), "Unexpected error occured");
+        log_unexpected_error(&err_err.to_string());
     }
 }
 

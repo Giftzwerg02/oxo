@@ -1,7 +1,7 @@
 use poise::{
-    serenity_prelude::{CreateEmbed, CreateMessage, Timestamp},
-    CreateReply,
+    serenity_prelude::{CreateEmbed, Timestamp},
 };
+use tracing::{error, Value};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -12,4 +12,9 @@ pub fn error_embed<'a>(create: &'a mut CreateEmbed, error: &Error) -> &'a mut Cr
         .field("Error", format!("```{:?}```", error), false)
         .footer(|f| f.text("XOXO"))
         .timestamp(Timestamp::now())
+}
+
+
+pub fn log_unexpected_error(error: &dyn Value) {
+    error!(error = error, "Unexpected error occured");
 }
