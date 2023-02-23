@@ -929,6 +929,8 @@ dependencies = [
  "serenity",
  "songbird",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
