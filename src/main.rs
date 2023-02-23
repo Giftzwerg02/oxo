@@ -43,7 +43,7 @@ async fn on_error(error: FrameworkError<'_, Data, Error>) {
                 msg.embed(|e| {
                     e.title("Woopsie doodle, something happened owo")
                         .description("An error occured because of (most likely) your incompetence :)")
-                        .thumbnail("https://github.com/Giftzwerg02/oxo/blob/staging/resources/unsafe-ferris-transparent.png")
+                        .thumbnail("https://raw.githubusercontent.com/Giftzwerg02/oxo/33856f5c3ad1549de092f7f58a83b05e1b060398/resources/unsafe-ferris-transparent.png")
                         .field("Error", format!("```{:?}```", error), false)
                         .footer(|f| f.text("XOXO"))
                         .timestamp(Timestamp::now())
