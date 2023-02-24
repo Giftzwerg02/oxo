@@ -1,54 +1,100 @@
-use std::{sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 use dotenvy::dotenv;
 use poise::{
     async_trait,
-    serenity_prelude::{
-        self as serenity, ChannelId, Http, Mutex,
-    },
+    serenity_prelude::{self as serenity, ChannelId, GuildId, Http, Mutex, RwLock, Guild},
     FrameworkError,
 };
-use songbird::{Call, Event, EventContext, EventHandler, SerenityInit, TrackEvent};
+use songbird::{
+    tracks::{Track, TrackHandle, TrackQueue},
+    Call, Event, EventContext, EventHandler, SerenityInit, TrackEvent, input::Input, create_player,
+};
 mod error;
-use error::{error_embed, Error, log_unexpected_error};
-use tracing::{debug};
+use error::{error_embed, log_unexpected_error, Error};
+use tracing::debug;
 
-struct Data {} // User data, which is stored and accessible in all command invocations
-type Context<'a> = poise::Context<'a, Data, Error>;
+type Context<'a> = poise::Context<'a, State, Error>;
+type CmdRes = Result<(), Error>;
 
-struct LeaveAfterEndEventHandler {
+#[derive(Debug)]
+struct State {
+    queues: Arc<Mutex<HashMap<GuildId, TrackQueue>>>,
+}
+
+struct EndEventHandler {
     handler: Arc<Mutex<Call>>,
     http: Arc<Http>,
     channel_id: ChannelId,
+    guild_id: GuildId,
 }
 
 #[async_trait]
-impl EventHandler for LeaveAfterEndEventHandler {
-    async fn act(&self, _ctx: &EventContext<'_>) -> Option<Event> {
-        debug!(channel_id = self.channel_id.to_string(), "Triggered leave-after-end-event-handler");
-    
-        let mut handler = self.handler.lock().await;
-        let res = handler.leave().await;
+impl EventHandler for EndEventHandler {
+    async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
+        debug!(
+            channel_id = self.channel_id.to_string(),
+            "Triggered leave-after-end-event-handler"
+        );
 
-        if let Err(err) = res {
-            if let Err(err_err) = self.channel_id
-                .send_message(&self.http, |create| {
-                    create.embed(|e| error_embed(e, &err.into()))
-                }).await {
-                    log_unexpected_error(&err_err.to_string())
-                };
-        }
+        let EventContext::Track(tracks) = ctx else {
+            return None;
+        };
+
+        // double de-ref LETS GO
+        let [(state, handle)] = **tracks else {
+            return None;
+        };
 
         None
     }
 }
 
+/// Hol' up
+#[poise::command(slash_command)]
+async fn pause(ctx: Context<'_>) -> CmdRes {
+    let guild = ctx.guild().unwrap();
+    let queues = ctx.data().queues.lock().await;
+    let queue = queues.get(&guild.id)
+        .unwrap();
+
+    queue.pause()?;
+
+    Ok(())
+}
+
+/// Keep going
+#[poise::command(slash_command)]
+async fn resume(ctx: Context<'_>) -> CmdRes {
+    let guild = ctx.guild().unwrap();
+    let queues = ctx.data().queues.lock().await;
+    let queue = queues.get(&guild.id)
+        .unwrap();
+
+    queue.resume()?;
+
+    Ok(())
+}
+
+/// Don't care
+#[poise::command(slash_command)]
+async fn skip(ctx: Context<'_>) -> CmdRes {
+    let guild = ctx.guild().unwrap();
+    let queues = ctx.data().queues.lock().await;
+    let queue = queues.get(&guild.id)
+        .unwrap();
+
+    queue.skip()?;
+
+    Ok(())
+}
+
 /// Jamming
-#[poise::command(slash_command, prefix_command)]
-async fn play(
-    ctx: Context<'_>,
-    #[description = "URL"] url: String,
-) -> Result<(), Error> {
+#[poise::command(slash_command)]
+async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
     let guild = ctx.guild().unwrap();
     let channel_id = guild
         .voice_states
@@ -56,35 +102,28 @@ async fn play(
         .and_then(|vs| vs.channel_id)
         .unwrap();
 
-    let serenity_ctx = ctx.serenity_context();
-
-    let manager = songbird::get(serenity_ctx).await.unwrap().clone();
+    let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
 
     let (handler, _) = manager.join(guild.id, channel_id).await;
-
     let mut handler_lock = handler.lock().await;
+
+    let mut queues = ctx.data().queues.lock().await;
+    let queue = queues.entry(guild.id).or_default();
+
     let source = songbird::ytdl(&url).await?;
+    let track = queue.add_source(source, &mut handler_lock);
 
-    let _ = handler_lock.play_source(source);
-
-    handler_lock.add_global_event(
-        Event::Track(TrackEvent::End),
-        LeaveAfterEndEventHandler {
-            handler: handler.clone(),
-            channel_id: ctx.channel_id(),
-            http: serenity_ctx.http.clone(),
-        },
-    );
-
-    // tracker.add_event(Event::Track(TrackEvent::End), LeaveAfterEndEventHandler {
-    //     handler: handler.clone(),
-    //     poise_ctx: ctx.clone()
-    // });
+    track.add_event(Event::Track(TrackEvent::End), EndEventHandler {
+        handler: handler.clone(),
+        channel_id: ctx.channel_id(),
+        http: ctx.serenity_context().http.clone(),
+        guild_id: guild.id,
+    })?;
 
     Ok(())
 }
 
-async fn on_error(error: FrameworkError<'_, Data, Error>) {
+async fn on_error(error: FrameworkError<'_, State, Error>) {
     let res = match error {
         FrameworkError::Setup {
             error: _,
@@ -104,8 +143,15 @@ async fn on_error(error: FrameworkError<'_, Data, Error>) {
             ctx.send(|create| create.embed(|e| error_embed(e, &error)))
                 .await
         }
-        FrameworkError::ArgumentParse { error: _, input: _, ctx: _ } => todo!(),
-        FrameworkError::CommandStructureMismatch { description: _, ctx: _ } => todo!(),
+        FrameworkError::ArgumentParse {
+            error: _,
+            input: _,
+            ctx: _,
+        } => todo!(),
+        FrameworkError::CommandStructureMismatch {
+            description: _,
+            ctx: _,
+        } => todo!(),
         FrameworkError::CooldownHit {
             remaining_cooldown: _,
             ctx: _,
@@ -123,7 +169,11 @@ async fn on_error(error: FrameworkError<'_, Data, Error>) {
         FrameworkError::DmOnly { ctx: _ } => todo!(),
         FrameworkError::NsfwOnly { ctx: _ } => todo!(),
         FrameworkError::CommandCheckFailed { error: _, ctx: _ } => todo!(),
-        FrameworkError::DynamicPrefix { error: _, ctx: _, msg: _ } => todo!(),
+        FrameworkError::DynamicPrefix {
+            error: _,
+            ctx: _,
+            msg: _,
+        } => todo!(),
         FrameworkError::UnknownCommand {
             ctx: _,
             msg: _,
@@ -155,7 +205,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![play()],
+            commands: vec![play(), pause(), resume(), skip()],
             on_error: |err| Box::pin(on_error(err)),
             ..Default::default()
         })
@@ -164,7 +214,11 @@ async fn main() {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                Ok(State {
+                    queues: Default::default()
+                    // trackdata: Arc::new(Mutex::new(HashMap::new())),
+                    // song_input_data: Arc::new(Mutex::new(HashMap::new())),
+                })
             })
         })
         .client_settings(|builder| builder.register_songbird());
