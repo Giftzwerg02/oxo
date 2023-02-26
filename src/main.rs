@@ -12,7 +12,7 @@ use poise::{
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 use songbird::{
-    tracks::{TrackQueue, TrackCommand},
+    tracks::{TrackQueue, TrackCommand, Queued},
     Call, Event, EventContext, EventHandler, SerenityInit, TrackEvent, create_player,
 };
 mod error;
@@ -25,9 +25,12 @@ type CmdRes = Result<(), Error>;
 
 type Queues = Arc<Mutex<HashMap<GuildId, TrackQueue>>>;
 
+
+
 #[derive(Debug)]
 struct State {
     queues: Queues,
+    loop_mode: Arc<Mutex<LoopMode>>,
 }
 
 struct EndEventHandler {
@@ -36,6 +39,8 @@ struct EndEventHandler {
     queues: Queues,
     call: Arc<Mutex<Call>>,  
     guild_id: GuildId,
+    loop_mode: Arc<Mutex<LoopMode>>,
+    handler: Arc<Mutex<Call>>,
 }
 
 #[async_trait]
@@ -70,6 +75,58 @@ impl EventHandler for EndEventHandler {
             .get(&self.guild_id)
             .unwrap(); 
 
+        let loop_mode = self.loop_mode
+            .lock()
+            .await;
+
+        let input = handle.metadata().source_url.as_ref().unwrap();
+
+        let mut handler = self.handler
+            .lock()
+            .await;
+
+        match *loop_mode {
+            LoopMode::Off => {},
+            // track-looping is handled on command-execution once
+            LoopMode::Track => {
+                // TODO: broken, tracks are playing king of the hill and try to silence one another
+                let input = songbird::ytdl(&input).await.unwrap();
+                let (track, track_handle) = create_player(input);
+                let _ = track_handle.add_event(Event::Track(TrackEvent::End), EndEventHandler {
+                    channel_id: self.channel_id,
+                    http: self.http.clone(),
+                    call: self.call.clone(),
+                    guild_id: self.guild_id,
+                    queues: self.queues.clone(),
+                    loop_mode: self.loop_mode.clone(),
+                    handler: self.handler.clone()
+                });
+
+                let _ = queue.pause();
+                queue.add(track, &mut handler);
+                queue.modify_queue(|q| {
+                    let last = q.pop_back().unwrap();
+                    q.push_front(last);                   
+                });
+                let _ = queue.resume();
+            },
+            LoopMode::Queue => {
+                let input = songbird::ytdl(&input).await.unwrap();
+                let (track, track_handle) = create_player(input);
+                let _ = track_handle.add_event(Event::Track(TrackEvent::End), EndEventHandler {
+                    channel_id: self.channel_id,
+                    http: self.http.clone(),
+                    call: self.call.clone(),
+                    guild_id: self.guild_id,
+                    queues: self.queues.clone(),
+                    loop_mode: self.loop_mode.clone(),
+                    handler: self.handler.clone()
+                });
+
+                queue.add(track, &mut handler);
+            },
+        }
+
         if queue.is_empty() {
             let _ = self.channel_id.say(&self.http, "No more songs to play OwO, guess I'll go...")
                 .await;
@@ -78,56 +135,6 @@ impl EventHandler for EndEventHandler {
             let _ = call.leave().await;
         }
 
-        None
-    }
-}
-
-struct QueueLoopHandler {
-    guild_id: GuildId,
-    queues: Queues,
-    handler: Arc<Mutex<Call>>,
-    loop_mode: LoopMode,
-}
-
-#[async_trait]
-impl EventHandler for QueueLoopHandler {
-    async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
-        let queues = self.queues
-            .lock()
-            .await;
-        
-        let queue = queues 
-            .get(&self.guild_id)
-            .unwrap();
-
-        let mut handler = self.handler
-            .lock()
-            .await;
-
-        let EventContext::Track(tracks) = ctx else {
-            return None;
-        };
-
-        // double de-ref LETS GO
-        let [(_, track)] = **tracks else {
-            return None;
-        };
-    
-        let input = track.metadata().source_url.as_ref().unwrap();
-
-        match self.loop_mode {
-            LoopMode::Off => {},
-            // track-looping is handled on command-execution once
-            LoopMode::Track => {
-                let input = songbird::ytdl(&input).await.unwrap();
-                queue.add_source(input, &mut handler);
-                queue.modify_queue(|q| q.rotate_right(1));
-            },
-            LoopMode::Queue => {
-                let input = songbird::ytdl(&input).await.unwrap();
-                queue.add_source(input, &mut handler);        
-            },
-        }
         None
     }
 }
@@ -142,24 +149,8 @@ enum LoopMode {
 /// And it goes on and on and on and on and ...
 #[poise::command(slash_command, rename = "loop")]
 async fn loop_mode(ctx: Context<'_>, loop_mode: LoopMode) -> CmdRes {
-    let guild = ctx.guild().unwrap();
-    let queues = ctx.data().queues.lock().await;
-    let queue = queues.get(&guild.id)
-        .unwrap();
-
-    let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
-    let handler = manager.get(guild.id)
-        .unwrap();
-
-    for track in queue.current_queue() {
-        track.add_event(Event::Track(TrackEvent::End), QueueLoopHandler {
-            queues: ctx.data().queues.clone(),
-            guild_id: guild.id,
-            handler: handler.clone(),
-            loop_mode: loop_mode.clone()
-        })?;
-    }
-
+    let mut global_loop_mode = ctx.data().loop_mode.lock().await;
+    *global_loop_mode = loop_mode;
     Ok(())
 }
 
@@ -358,13 +349,15 @@ async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
     let source = songbird::ytdl(&url).await?;
     let track = queue.add_source(source, &mut handler_lock);
 
-    // track.add_event(Event::Track(TrackEvent::End), EndEventHandler {
-    //     channel_id: ctx.channel_id(),
-    //     http: ctx.serenity_context().http.clone(),
-    //     call: handler.clone(),
-    //     guild_id: guild.id,
-    //     queues: ctx.data().queues.clone()
-    // })?;
+    track.add_event(Event::Track(TrackEvent::End), EndEventHandler {
+        channel_id: ctx.channel_id(),
+        http: ctx.serenity_context().http.clone(),
+        call: handler.clone(),
+        guild_id: guild.id,
+        queues: ctx.data().queues.clone(),
+        loop_mode: ctx.data().loop_mode.clone(),
+        handler: handler.clone()
+    })?;
 
     Ok(())
 }
@@ -461,7 +454,8 @@ async fn main() {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(State {
-                    queues: Default::default()
+                    queues: Default::default(),
+                    loop_mode: Arc::new(Mutex::new(LoopMode::Off))
                     // trackdata: Arc::new(Mutex::new(HashMap::new())),
                     // song_input_data: Arc::new(Mutex::new(HashMap::new())),
                 })
