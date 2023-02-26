@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap},
+    collections::{HashMap, VecDeque},
     sync::Arc, time::Duration,
 };
 
@@ -9,9 +9,11 @@ use poise::{
     serenity_prelude::{self as serenity, ChannelId, GuildId, Http, Mutex, Colour, Timestamp},
     FrameworkError,
 };
+use rand::thread_rng;
+use rand::seq::SliceRandom;
 use songbird::{
-    tracks::TrackQueue,
-    Call, Event, EventContext, EventHandler, SerenityInit, TrackEvent,
+    tracks::{TrackQueue, TrackCommand},
+    Call, Event, EventContext, EventHandler, SerenityInit, TrackEvent, create_player,
 };
 mod error;
 use error::{error_embed, log_unexpected_error, Error};
@@ -78,6 +80,132 @@ impl EventHandler for EndEventHandler {
 
         None
     }
+}
+
+struct QueueLoopHandler {
+    guild_id: GuildId,
+    queues: Queues,
+    handler: Arc<Mutex<Call>>,
+    loop_mode: LoopMode,
+}
+
+#[async_trait]
+impl EventHandler for QueueLoopHandler {
+    async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
+        let queues = self.queues
+            .lock()
+            .await;
+        
+        let queue = queues 
+            .get(&self.guild_id)
+            .unwrap();
+
+        let mut handler = self.handler
+            .lock()
+            .await;
+
+        let EventContext::Track(tracks) = ctx else {
+            return None;
+        };
+
+        // double de-ref LETS GO
+        let [(_, track)] = **tracks else {
+            return None;
+        };
+    
+        let input = track.metadata().source_url.as_ref().unwrap();
+
+        match self.loop_mode {
+            LoopMode::Off => {},
+            // track-looping is handled on command-execution once
+            LoopMode::Track => {
+                let input = songbird::ytdl(&input).await.unwrap();
+                queue.add_source(input, &mut handler);
+                queue.modify_queue(|q| q.rotate_right(1));
+            },
+            LoopMode::Queue => {
+                let input = songbird::ytdl(&input).await.unwrap();
+                queue.add_source(input, &mut handler);        
+            },
+        }
+        None
+    }
+}
+
+#[derive(Debug, poise::ChoiceParameter, Clone)]
+enum LoopMode {
+    Off,
+    Track,
+    Queue
+}
+
+/// And it goes on and on and on and on and ...
+#[poise::command(slash_command, rename = "loop")]
+async fn loop_mode(ctx: Context<'_>, loop_mode: LoopMode) -> CmdRes {
+    let guild = ctx.guild().unwrap();
+    let queues = ctx.data().queues.lock().await;
+    let queue = queues.get(&guild.id)
+        .unwrap();
+
+    let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
+    let handler = manager.get(guild.id)
+        .unwrap();
+
+    for track in queue.current_queue() {
+        track.add_event(Event::Track(TrackEvent::End), QueueLoopHandler {
+            queues: ctx.data().queues.clone(),
+            guild_id: guild.id,
+            handler: handler.clone(),
+            loop_mode: loop_mode.clone()
+        })?;
+    }
+
+    Ok(())
+}
+
+
+/// In the beninging
+#[poise::command(slash_command)]
+async fn playtop(
+    ctx: Context<'_>,
+    #[description = "The track to send to the front"]
+    track_number: usize,
+) -> CmdRes {
+    let guild = ctx.guild().unwrap();
+    let queues = ctx.data().queues.lock().await;
+    let queue = queues.get(&guild.id)
+        .unwrap();
+
+    if track_number <= 1 {
+        return Ok(())
+    }
+
+    queue.pause()?;
+    queue.modify_queue(|q| q.swap(0, track_number - 1));
+    queue.resume()?;
+
+    Ok(())
+}
+
+
+/// Harlem shake
+#[poise::command(slash_command)]
+async fn shuffle(ctx: Context<'_>) -> CmdRes {
+    let guild = ctx.guild().unwrap();
+    let queues = ctx.data().queues.lock().await;
+    let queue = queues.get(&guild.id)
+        .unwrap();
+
+    queue.modify_queue(|q| {
+        let mut rng = thread_rng();
+        let [_, rest@..] = q.make_contiguous() else {
+            return;
+        };
+
+        rest.shuffle(&mut rng);        
+    });
+
+    Ok(())
 }
 
 
@@ -230,13 +358,13 @@ async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
     let source = songbird::ytdl(&url).await?;
     let track = queue.add_source(source, &mut handler_lock);
 
-    track.add_event(Event::Track(TrackEvent::End), EndEventHandler {
-        channel_id: ctx.channel_id(),
-        http: ctx.serenity_context().http.clone(),
-        call: handler.clone(),
-        guild_id: guild.id,
-        queues: ctx.data().queues.clone()
-    })?;
+    // track.add_event(Event::Track(TrackEvent::End), EndEventHandler {
+    //     channel_id: ctx.channel_id(),
+    //     http: ctx.serenity_context().http.clone(),
+    //     call: handler.clone(),
+    //     guild_id: guild.id,
+    //     queues: ctx.data().queues.clone()
+    // })?;
 
     Ok(())
 }
@@ -323,7 +451,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![play(), pause(), resume(), skip(), now_playing(), queue()],
+            commands: vec![play(), pause(), resume(), skip(), now_playing(), queue(), loop_mode(), shuffle(), playtop()],
             on_error: |err| Box::pin(on_error(err)),
             ..Default::default()
         })

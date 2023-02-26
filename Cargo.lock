@@ -930,6 +930,7 @@ dependencies = [
  "chrono",
  "dotenvy",
  "poise",
+ "rand",
  "serenity",
  "songbird",
  "tokio",
