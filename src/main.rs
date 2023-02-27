@@ -338,6 +338,8 @@ async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
         .and_then(|vs| vs.channel_id)
         .unwrap();
 
+    ctx.say("Loading your track...").await.ok();
+
     let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
 
     let (handler, _) = manager.join(guild.id, channel_id).await;
@@ -348,6 +350,8 @@ async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
 
     let source = songbird::ytdl(&url).await?;
     let track = queue.add_source(source, &mut handler_lock);
+
+    ctx.send(|create| create.content(format!("Started playing `{}`", track.metadata().title.clone().unwrap_or("N/A".into())))).await.ok();
 
     track.add_event(Event::Track(TrackEvent::End), EndEventHandler {
         channel_id: ctx.channel_id(),
