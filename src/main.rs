@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     sync::Arc, time::Duration,
 };
 
@@ -12,7 +12,7 @@ use poise::{
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 use songbird::{
-    tracks::{TrackQueue, TrackCommand, Queued},
+    tracks::TrackQueue,
     Call, Event, EventContext, EventHandler, SerenityInit, TrackEvent, create_player,
 };
 mod error;
