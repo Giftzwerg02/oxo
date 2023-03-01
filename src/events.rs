@@ -9,7 +9,7 @@ use songbird::{create_player, Call, Event, EventContext, EventHandler, TrackEven
 
 use tracing::debug;
 
-use crate::{Context, LoopMode, Queues};
+use crate::bot::{Context, LoopMode, Queues};
 
 #[derive(Clone)]
 pub struct EndEventHandler {

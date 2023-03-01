@@ -4,7 +4,7 @@ use poise::{
 };
 use tracing::{error, Value};
 
-use crate::State;
+use crate::bot::State;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 

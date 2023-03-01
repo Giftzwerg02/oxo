@@ -8,7 +8,7 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use songbird::{Event, TrackEvent};
 
-use crate::{error::Error, events::EndEventHandler, Context, LoopMode, State};
+use crate::{error::Error, events::EndEventHandler, bot::{Context, LoopMode, State}};
 
 pub type CmdRes = Result<(), Error>;
 
