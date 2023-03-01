@@ -9,8 +9,9 @@ use songbird::{create_player, Call, Event, EventContext, EventHandler, TrackEven
 
 use tracing::debug;
 
-use crate::{LoopMode, Queues, Context};
+use crate::{Context, LoopMode, Queues};
 
+#[derive(Clone)]
 pub struct EndEventHandler {
     http: Arc<Http>,
     channel_id: ChannelId,
@@ -52,7 +53,7 @@ impl EventHandler for EndEventHandler {
             return None;
         };
 
-        let fallback_title = "No title found,  no seriously this is not the name of the track - for some reason there just isn't one".to_string();
+        let fallback_title = "No title found, no seriously this is not the name of the track - for some reason there just isn't one".to_string();
         let title = handle.metadata().title.as_ref().unwrap_or(&fallback_title);
 
         let _ = self
@@ -77,18 +78,7 @@ impl EventHandler for EndEventHandler {
                 // TODO: broken, tracks are playing king of the hill and try to silence one another
                 let input = songbird::ytdl(&input).await.unwrap();
                 let (track, track_handle) = create_player(input);
-                let _ = track_handle.add_event(
-                    Event::Track(TrackEvent::End),
-                    EndEventHandler {
-                        channel_id: self.channel_id,
-                        http: self.http.clone(),
-                        call: self.call.clone(),
-                        guild_id: self.guild_id,
-                        queues: self.queues.clone(),
-                        loop_mode: self.loop_mode.clone(),
-                        handler: self.handler.clone(),
-                    },
-                );
+                let _ = track_handle.add_event(Event::Track(TrackEvent::End), self.clone());
 
                 let _ = queue.pause();
                 queue.add(track, &mut handler);
@@ -101,18 +91,7 @@ impl EventHandler for EndEventHandler {
             LoopMode::Queue => {
                 let input = songbird::ytdl(&input).await.unwrap();
                 let (track, track_handle) = create_player(input);
-                let _ = track_handle.add_event(
-                    Event::Track(TrackEvent::End),
-                    EndEventHandler {
-                        channel_id: self.channel_id,
-                        http: self.http.clone(),
-                        call: self.call.clone(),
-                        guild_id: self.guild_id,
-                        queues: self.queues.clone(),
-                        loop_mode: self.loop_mode.clone(),
-                        handler: self.handler.clone(),
-                    },
-                );
+                let _ = track_handle.add_event(Event::Track(TrackEvent::End), self.clone());
 
                 queue.add(track, &mut handler);
             }
