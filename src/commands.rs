@@ -1,10 +1,11 @@
 use std::time::Duration;
+use std::sync::Arc;
 
 use poise::{
-    serenity_prelude::{Colour, Timestamp},
+    serenity_prelude::{Colour, Timestamp, Mutex},
     Command,
 };
-use rand::seq::SliceRandom;
+
 use rand::thread_rng;
 use songbird::{Event, TrackEvent};
 
@@ -18,7 +19,7 @@ macro_rules! commands {
             $(#[$header])* async fn $name ($($args)*) -> CmdRes $blk
         )*
 
-        pub type PoiseCommand = Command<State, Box<(dyn std::error::Error + Send + Sync + 'static)>>;
+        pub type PoiseCommand = Command<Arc<Mutex<State>>, Box<(dyn std::error::Error + Send + Sync + 'static)>>;
 
         pub fn commands() -> Result<Vec<PoiseCommand>, Error> {
             return Ok(vec![

@@ -6,23 +6,24 @@ use songbird::{tracks::TrackQueue, SerenityInit};
 use crate::error::{on_error, Error};
 use crate::commands::commands;
 
-pub type Context<'a> = poise::Context<'a, State, Error>;
+pub type Context<'a> = poise::Context<'a, Arc<Mutex<State>>, Error>;
 
 pub type Queues = Arc<Mutex<HashMap<GuildId, TrackQueue>>>;
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct State {
     pub queues: Queues,
     pub loop_mode: Arc<Mutex<LoopMode>>,
 }
 
-#[derive(Debug, poise::ChoiceParameter, Clone)]
+#[derive(Debug, poise::ChoiceParameter, Clone, Default)]
 pub enum LoopMode {
+    #[default]
     Off,
     Track,
     Queue,
 }
 
-pub async fn start_bot() {
+pub async fn start_bot(state: Arc<Mutex<State>>) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
 
     let framework = poise::Framework::builder()
@@ -36,11 +37,7 @@ pub async fn start_bot() {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(State {
-                    queues: Default::default(),
-                    loop_mode: Arc::new(Mutex::new(LoopMode::Off)), // trackdata: Arc::new(Mutex::new(HashMap::new())),
-                                                                    // song_input_data: Arc::new(Mutex::new(HashMap::new())),
-                })
+                Ok(state)
             })
         })
         .client_settings(|builder| builder.register_songbird());

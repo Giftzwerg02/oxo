@@ -4,9 +4,20 @@ mod endpoints;
 mod error;
 mod bot;
 
+use std::sync::Arc;
+
 use bot::start_bot;
 use dotenvy::dotenv;
 use endpoints::api_server;
+
+use crate::bot::State;
+
+#[macro_export]
+macro_rules! mugly {
+    ($e:expr) => {
+        std::sync::Arc::new(poise::serenity_prelude::Mutex::new($e))
+    };
+}
 
 #[actix_web::main]
 async fn main() {
@@ -16,11 +27,13 @@ async fn main() {
     // Init Logger
     tracing_subscriber::fmt::init();
 
+    let state = mugly!(State::default());
+
     tokio::join!(
         // Start API Server
         api_server(), 
 
         // Start Discord Bot
-        start_bot()
+        start_bot(state)
     );
 }
