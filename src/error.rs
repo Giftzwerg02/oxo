@@ -1,14 +1,17 @@
+use std::sync::Arc;
+
 use poise::{
-    serenity_prelude::{CreateEmbed, Timestamp},
+    serenity_prelude::{CreateEmbed, Timestamp, Mutex},
     FrameworkError,
 };
+use tokio::sync::OwnedMutexGuard;
 use tracing::{error, Value};
 
 use crate::bot::State;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
-pub async fn on_error(error: FrameworkError<'_, State, Error>) {
+pub async fn on_error(error: FrameworkError<'_, OwnedMutexGuard<State>, Error>) {
     let res = match error {
         FrameworkError::Setup {
             error: _,

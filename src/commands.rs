@@ -3,11 +3,12 @@ use std::sync::Arc;
 
 use poise::{
     serenity_prelude::{Colour, Timestamp, Mutex},
-    Command,
+    Command, async_trait,
 };
 
-use rand::thread_rng;
+use rand::{thread_rng, seq::SliceRandom};
 use songbird::{Event, TrackEvent};
+use tokio::sync::MutexGuard;
 
 use crate::{error::Error, events::EndEventHandler, bot::{Context, LoopMode, State}};
 
@@ -19,9 +20,9 @@ macro_rules! commands {
             $(#[$header])* async fn $name ($($args)*) -> CmdRes $blk
         )*
 
-        pub type PoiseCommand = Command<Arc<Mutex<State>>, Box<(dyn std::error::Error + Send + Sync + 'static)>>;
+        pub type PoiseCommand = Command<tokio::sync::OwnedMutexGuard<State>, Box<(dyn std::error::Error + Send + Sync + 'static)>>;
 
-        pub fn commands() -> Result<Vec<PoiseCommand>, Error> {
+        pub fn commands<'a>() -> Result<Vec<PoiseCommand>, Error> {
             return Ok(vec![
                 $(
                     $name(),
@@ -30,6 +31,7 @@ macro_rules! commands {
         }
     };
 }
+
 
 commands! {
     /// And it goes on and on and on and on and ...

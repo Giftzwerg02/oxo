@@ -2,11 +2,12 @@ use std::{collections::HashMap, sync::Arc};
 
 use poise::serenity_prelude::{self as serenity, GuildId, Mutex};
 use songbird::{tracks::TrackQueue, SerenityInit};
+use tokio::sync::OwnedMutexGuard;
 
 use crate::error::{on_error, Error};
 use crate::commands::commands;
 
-pub type Context<'a> = poise::Context<'a, Arc<Mutex<State>>, Error>;
+pub type Context<'a> = poise::Context<'a, OwnedMutexGuard<State>, Error>;
 
 pub type Queues = Arc<Mutex<HashMap<GuildId, TrackQueue>>>;
 #[derive(Debug, Default)]
@@ -37,7 +38,7 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(state)
+                Ok(state.clone().lock_owned().await)
             })
         })
         .client_settings(|builder| builder.register_songbird());
