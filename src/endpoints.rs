@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{HttpResponse, get, Responder, HttpServer, App};
 use serde::Serialize;
 
@@ -13,7 +14,11 @@ async fn ping() -> impl Responder {
 
 pub async fn api_server() {
     HttpServer::new(|| {
-        App::new().service(ping)
+        let cors = Cors::permissive();
+
+        App::new()
+            .wrap(cors)
+            .service(ping)
     })
     .bind(("0.0.0.0", 8080))
     .expect("Could not bind port")
