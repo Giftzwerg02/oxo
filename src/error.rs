@@ -4,7 +4,7 @@ use poise::{
     serenity_prelude::{CreateEmbed, Timestamp, Mutex},
     FrameworkError,
 };
-use tokio::sync::OwnedMutexGuard;
+
 use tracing::{error, Value};
 
 use crate::bot::State;

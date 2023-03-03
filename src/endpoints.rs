@@ -4,7 +4,7 @@ use actix_cors::Cors;
 use actix_web::{get, App, HttpResponse, HttpServer, Responder, web};
 use poise::serenity_prelude::Mutex;
 use serde::Serialize;
-use tokio::sync::OwnedMutexGuard;
+
 
 use crate::bot::State;
 
@@ -31,7 +31,7 @@ async fn queue(
 ) -> impl Responder {
     let state = state.lock().await;
     let queues = state.queues.lock().await;
-    let queues = queues.values().into_iter().collect::<Vec<_>>();
+    let queues = queues.values().collect::<Vec<_>>();
     let queue = queues.first().unwrap();
     let queue = queue.current_queue();
     let track = queue.first().unwrap();
@@ -55,5 +55,5 @@ pub async fn api_server(state: Arc<Mutex<State>>) {
     .expect("Could not bind port")
     .run()
     .await
-    .expect("Could not start server")
+    .expect("Could not start server");
 }

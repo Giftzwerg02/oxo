@@ -2,7 +2,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use poise::serenity_prelude::{self as serenity, GuildId, Mutex};
 use songbird::{tracks::TrackQueue, SerenityInit};
-use tokio::sync::OwnedMutexGuard;
+use tracing::error;
+
 
 use crate::commands::commands;
 use crate::error::{on_error, Error};
@@ -41,7 +42,20 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
                 Ok(state.clone())
             })
         })
-        .client_settings(|builder| builder.register_songbird());
+        .client_settings(|builder| builder.register_songbird())
+        .build().await.unwrap();
+    
+    
+    let tmp_framework = framework.clone();
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Could not register ctrl+c handler");
+        let shard_manager = tmp_framework.shard_manager();
+        shard_manager.lock().await.shutdown_all().await;
+    });
 
-    framework.run().await.expect("Could not start discord bot")
+    if let Err(why) = framework.start().await {
+        error!("Client error: {:?}", why);
+    }
 }
