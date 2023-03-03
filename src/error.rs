@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
 use poise::{
-    serenity_prelude::{CreateEmbed, Timestamp, Mutex},
+    serenity_prelude::{CreateEmbed, Timestamp},
     FrameworkError,
 };
 use tokio::sync::OwnedMutexGuard;

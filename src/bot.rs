@@ -4,8 +4,8 @@ use poise::serenity_prelude::{self as serenity, GuildId, Mutex};
 use songbird::{tracks::TrackQueue, SerenityInit};
 use tokio::sync::OwnedMutexGuard;
 
-use crate::error::{on_error, Error};
 use crate::commands::commands;
+use crate::error::{on_error, Error};
 
 pub type Context<'a> = poise::Context<'a, OwnedMutexGuard<State>, Error>;
 

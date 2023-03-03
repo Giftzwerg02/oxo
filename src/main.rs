@@ -1,10 +1,8 @@
+mod bot;
 mod commands;
-mod events;
 mod endpoints;
 mod error;
-mod bot;
-
-use std::sync::Arc;
+mod events;
 
 use bot::start_bot;
 use dotenvy::dotenv;
@@ -31,8 +29,7 @@ async fn main() {
 
     tokio::join!(
         // Start API Server
-        api_server(), 
-
+        api_server(),
         // Start Discord Bot
         start_bot(state)
     );

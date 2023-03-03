@@ -1,10 +1,10 @@
 use actix_cors::Cors;
-use actix_web::{HttpResponse, get, Responder, HttpServer, App};
+use actix_web::{get, App, HttpResponse, HttpServer, Responder};
 use serde::Serialize;
 
 #[derive(Serialize)]
 struct PingStatus<'a> {
-    status: &'a str
+    status: &'a str,
 }
 
 #[get("/ping")]
@@ -16,9 +16,7 @@ pub async fn api_server() {
     HttpServer::new(|| {
         let cors = Cors::permissive();
 
-        App::new()
-            .wrap(cors)
-            .service(ping)
+        App::new().wrap(cors).service(ping)
     })
     .bind(("0.0.0.0", 8080))
     .expect("Could not bind port")

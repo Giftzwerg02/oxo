@@ -1,16 +1,18 @@
 use std::time::Duration;
-use std::sync::Arc;
 
 use poise::{
-    serenity_prelude::{Colour, Timestamp, Mutex},
-    Command, async_trait,
+    serenity_prelude::{Colour, Timestamp},
+    Command,
 };
 
-use rand::{thread_rng, seq::SliceRandom};
+use rand::{seq::SliceRandom, thread_rng};
 use songbird::{Event, TrackEvent};
-use tokio::sync::MutexGuard;
 
-use crate::{error::Error, events::EndEventHandler, bot::{Context, LoopMode, State}};
+use crate::{
+    bot::{Context, LoopMode, State},
+    error::Error,
+    events::EndEventHandler,
+};
 
 pub type CmdRes = Result<(), Error>;
 
@@ -31,7 +33,6 @@ macro_rules! commands {
         }
     };
 }
-
 
 commands! {
     /// And it goes on and on and on and on and ...
