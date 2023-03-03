@@ -1,6 +1,14 @@
+use std::sync::Arc;
+
 use actix_cors::Cors;
-use actix_web::{get, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, App, HttpResponse, HttpServer, Responder, web};
+use poise::serenity_prelude::Mutex;
 use serde::Serialize;
+use tokio::sync::OwnedMutexGuard;
+
+use crate::bot::State;
+
+type DataState = web::Data<Arc<Mutex<State>>>;
 
 #[derive(Serialize)]
 struct PingStatus<'a> {
@@ -12,11 +20,36 @@ async fn ping() -> impl Responder {
     HttpResponse::Ok().json(PingStatus { status: "owo" })
 }
 
-pub async fn api_server() {
-    HttpServer::new(|| {
+#[derive(Serialize)]
+struct Track {
+    title: String
+}
+
+#[get("/queue")]
+async fn queue(
+    state: DataState
+) -> impl Responder {
+    let state = state.lock().await;
+    let queues = state.queues.lock().await;
+    let queues = queues.values().into_iter().collect::<Vec<_>>();
+    let queue = queues.first().unwrap();
+    let queue = queue.current_queue();
+    let track = queue.first().unwrap();
+    let res = track.metadata().title.as_ref().unwrap_or(&"sussy".to_string()).clone();
+
+    HttpResponse::Ok()
+        .json(Track { title: res })
+}
+
+pub async fn api_server(state: Arc<Mutex<State>>) {
+    HttpServer::new(move || {
         let cors = Cors::permissive();
 
-        App::new().wrap(cors).service(ping)
+        App::new()
+            .wrap(cors)
+            .app_data(DataState::new(state.clone()))
+            .service(ping)
+            .service(queue)
     })
     .bind(("0.0.0.0", 8080))
     .expect("Could not bind port")

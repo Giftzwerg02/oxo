@@ -7,7 +7,7 @@ use tokio::sync::OwnedMutexGuard;
 use crate::commands::commands;
 use crate::error::{on_error, Error};
 
-pub type Context<'a> = poise::Context<'a, OwnedMutexGuard<State>, Error>;
+pub type Context<'a> = poise::Context<'a, Arc<Mutex<State>>, Error>;
 
 pub type Queues = Arc<Mutex<HashMap<GuildId, TrackQueue>>>;
 #[derive(Debug, Default)]
@@ -38,7 +38,7 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(state.clone().lock_owned().await)
+                Ok(state.clone())
             })
         })
         .client_settings(|builder| builder.register_songbird());

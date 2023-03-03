@@ -1,9 +1,10 @@
-use std::time::Duration;
+use std::{time::Duration, sync::Arc};
 
 use poise::{
-    serenity_prelude::{Colour, Timestamp},
+    serenity_prelude::{Colour, Timestamp, Mutex},
     Command,
 };
+
 
 use rand::{seq::SliceRandom, thread_rng};
 use songbird::{Event, TrackEvent};
@@ -22,7 +23,7 @@ macro_rules! commands {
             $(#[$header])* async fn $name ($($args)*) -> CmdRes $blk
         )*
 
-        pub type PoiseCommand = Command<tokio::sync::OwnedMutexGuard<State>, Box<(dyn std::error::Error + Send + Sync + 'static)>>;
+        pub type PoiseCommand = Command<Arc<Mutex<State>>, Box<(dyn std::error::Error + Send + Sync + 'static)>>;
 
         pub fn commands<'a>() -> Result<Vec<PoiseCommand>, Error> {
             return Ok(vec![
@@ -38,7 +39,8 @@ commands! {
     /// And it goes on and on and on and on and ...
     #[poise::command(slash_command, rename = "loop")]
     async fn loop_mode(ctx: Context<'_>, loop_mode: LoopMode) -> CmdRes {
-        let mut global_loop_mode = ctx.data().loop_mode.lock().await;
+        let state = ctx.data().lock().await;    
+        let mut global_loop_mode = state.loop_mode.lock().await;
         *global_loop_mode = loop_mode;
         Ok(())
     }
@@ -49,8 +51,9 @@ commands! {
         ctx: Context<'_>,
         #[description = "The track to send to the front"] track_number: usize,
     ) -> CmdRes {
+        let state = ctx.data().lock().await;    
         let guild = ctx.guild().unwrap();
-        let queues = ctx.data().queues.lock().await;
+        let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
 
         if track_number <= 1 {
@@ -67,8 +70,9 @@ commands! {
     /// Harlem shake
     #[poise::command(slash_command)]
     async fn shuffle(ctx: Context<'_>) -> CmdRes {
+        let state = ctx.data().lock().await;    
         let guild = ctx.guild().unwrap();
-        let queues = ctx.data().queues.lock().await;
+        let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
 
         queue.modify_queue(|q| {
@@ -86,8 +90,9 @@ commands! {
     /// I WANT 'EM ALL - I WANT 'EM NOW
     #[poise::command(slash_command)]
     async fn queue(ctx: Context<'_>) -> CmdRes {
+        let state = ctx.data().lock().await;    
         let guild = ctx.guild().unwrap();
-        let queues = ctx.data().queues.lock().await;
+        let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
 
         let list = queue.current_queue();
@@ -121,8 +126,9 @@ commands! {
     /// Who asked?
     #[poise::command(slash_command)]
     async fn now_playing(ctx: Context<'_>) -> CmdRes {
+        let state = ctx.data().lock().await;    
         let guild = ctx.guild().unwrap();
-        let queues = ctx.data().queues.lock().await;
+        let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
 
         let current = queue.current().unwrap();
@@ -188,8 +194,9 @@ commands! {
     /// Hol' up
     #[poise::command(slash_command)]
     async fn pause(ctx: Context<'_>) -> CmdRes {
+        let state = ctx.data().lock().await;    
         let guild = ctx.guild().unwrap();
-        let queues = ctx.data().queues.lock().await;
+        let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
 
         queue.pause()?;
@@ -200,8 +207,9 @@ commands! {
     /// Keep going
     #[poise::command(slash_command)]
     async fn resume(ctx: Context<'_>) -> CmdRes {
+        let state = ctx.data().lock().await;    
         let guild = ctx.guild().unwrap();
-        let queues = ctx.data().queues.lock().await;
+        let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
 
         queue.resume()?;
@@ -212,8 +220,9 @@ commands! {
     /// Don't care
     #[poise::command(slash_command)]
     async fn skip(ctx: Context<'_>) -> CmdRes {
+        let state = ctx.data().lock().await;    
         let guild = ctx.guild().unwrap();
-        let queues = ctx.data().queues.lock().await;
+        let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
 
         queue.skip()?;
@@ -224,6 +233,7 @@ commands! {
     /// Jamming
     #[poise::command(slash_command)]
     async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
+        let state = ctx.data().lock().await;    
         let guild = ctx.guild().unwrap();
         let channel_id = guild
             .voice_states
@@ -238,7 +248,7 @@ commands! {
         let (handler, _) = manager.join(guild.id, channel_id).await;
         let mut handler_lock = handler.lock().await;
 
-        let mut queues = ctx.data().queues.lock().await;
+        let mut queues = state.queues.lock().await;
         let queue = queues.entry(guild.id).or_default();
 
         let source = songbird::ytdl(&url).await?;
@@ -255,7 +265,7 @@ commands! {
 
         track.add_event(
             Event::Track(TrackEvent::End),
-            EndEventHandler::new(ctx, handler.clone(), guild.id),
+            EndEventHandler::new(ctx, &state, handler.clone(), guild.id),
         )?;
 
         Ok(())

@@ -29,7 +29,7 @@ async fn main() {
 
     tokio::join!(
         // Start API Server
-        api_server(),
+        api_server(state.clone()),
         // Start Discord Bot
         start_bot(state)
     );
