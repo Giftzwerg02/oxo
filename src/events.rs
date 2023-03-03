@@ -26,7 +26,7 @@ pub struct EndEventHandler {
 impl EndEventHandler {
     pub fn new(
         ctx: Context,
-        state: &MutexGuard<State>,
+        state: &State,
         handler: Arc<Mutex<Call>>,
         guild_id: GuildId,
     ) -> Self {
