@@ -7,7 +7,6 @@ use poise::{
 
 use songbird::{create_player, Call, Event, EventContext, EventHandler, TrackEvent};
 
-use tokio::sync::MutexGuard;
 use tracing::debug;
 
 use crate::bot::{Context, LoopMode, Queues, State};
