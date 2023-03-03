@@ -9,6 +9,7 @@ FROM rustlang/rust:nightly-slim as build
 WORKDIR /app
 COPY . /app
 COPY --from=mwader/static-ffmpeg:5.1.2 /ffmpeg /ffmpeg
+COPY --from=jauderho/yt-dlp:latest /usr/local/bin/yt-dlp /yt-dlp
 
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
@@ -16,13 +17,15 @@ RUN apt-get update && \
     apt-get install -y upx libopus-dev cmake
 RUN cargo build --release && \
     upx --lzma --best /app/target/release/oxo && \
-    upx -1 /ffmpeg
+    upx -1 /ffmpeg && \
+    upx -1 /yt-dlp
 
 FROM gcr.io/distroless/cc:nonroot
 WORKDIR /app
 
 COPY --from=build /app/target/release/oxo /app/oxo
 COPY --from=build /ffmpeg /bin/
+COPY --from=build /yt-dlp /bin/
 
 USER nonroot
 
