@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{get, App, HttpResponse, HttpServer, Responder, web};
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use poise::serenity_prelude::Mutex;
 use serde::Serialize;
-
 
 use crate::bot::State;
 
@@ -22,23 +21,25 @@ async fn ping() -> impl Responder {
 
 #[derive(Serialize)]
 struct Track {
-    title: String
+    title: String,
 }
 
 #[get("/queue")]
-async fn queue(
-    state: DataState
-) -> impl Responder {
+async fn queue(state: DataState) -> impl Responder {
     let state = state.lock().await;
     let queues = state.queues.lock().await;
     let queues = queues.values().collect::<Vec<_>>();
     let queue = queues.first().unwrap();
     let queue = queue.current_queue();
     let track = queue.first().unwrap();
-    let res = track.metadata().title.as_ref().unwrap_or(&"sussy".to_string()).clone();
+    let res = track
+        .metadata()
+        .title
+        .as_ref()
+        .unwrap_or(&"sussy".to_string())
+        .clone();
 
-    HttpResponse::Ok()
-        .json(Track { title: res })
+    HttpResponse::Ok().json(Track { title: res })
 }
 
 pub async fn api_server(state: Arc<Mutex<State>>) {

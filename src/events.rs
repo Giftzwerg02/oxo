@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use poise::{
     async_trait,
-    serenity_prelude::{ChannelId, GuildId, Http, Mutex}
+    serenity_prelude::{ChannelId, GuildId, Http, Mutex},
 };
 
 use songbird::{create_player, Call, Event, EventContext, EventHandler, TrackEvent};
 
-use tokio::sync::{MutexGuard};
+use tokio::sync::MutexGuard;
 use tracing::debug;
 
 use crate::bot::{Context, LoopMode, Queues, State};
@@ -24,7 +24,12 @@ pub struct EndEventHandler {
 }
 
 impl EndEventHandler {
-    pub fn new(ctx: Context, state: &MutexGuard<State>,  handler: Arc<Mutex<Call>>, guild_id: GuildId) -> Self {
+    pub fn new(
+        ctx: Context,
+        state: &MutexGuard<State>,
+        handler: Arc<Mutex<Call>>,
+        guild_id: GuildId,
+    ) -> Self {
         Self {
             channel_id: ctx.channel_id(),
             http: ctx.serenity_context().http.clone(),

@@ -4,7 +4,6 @@ use poise::serenity_prelude::{self as serenity, GuildId, Mutex};
 use songbird::{tracks::TrackQueue, SerenityInit};
 use tracing::error;
 
-
 use crate::commands::commands;
 use crate::error::{on_error, Error};
 
@@ -43,9 +42,10 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
             })
         })
         .client_settings(|builder| builder.register_songbird())
-        .build().await.unwrap();
-    
-    
+        .build()
+        .await
+        .unwrap();
+
     let tmp_framework = framework.clone();
     tokio::spawn(async move {
         tokio::signal::ctrl_c()

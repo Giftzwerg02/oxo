@@ -1,10 +1,9 @@
-use std::{time::Duration, sync::Arc};
+use std::{sync::Arc, time::Duration};
 
 use poise::{
-    serenity_prelude::{Colour, Timestamp, Mutex},
+    serenity_prelude::{Colour, Mutex, Timestamp},
     Command,
 };
-
 
 use rand::{seq::SliceRandom, thread_rng};
 use songbird::{Event, TrackEvent};
@@ -25,7 +24,7 @@ macro_rules! commands {
 
         pub type PoiseCommand = Command<Arc<Mutex<State>>, Box<(dyn std::error::Error + Send + Sync + 'static)>>;
 
-        pub fn commands<'a>() -> Result<Vec<PoiseCommand>, Error> {
+        pub fn commands() -> Result<Vec<PoiseCommand>, Error> {
             return Ok(vec![
                 $(
                     $name(),
@@ -39,7 +38,7 @@ commands! {
     /// And it goes on and on and on and on and ...
     #[poise::command(slash_command, rename = "loop")]
     async fn loop_mode(ctx: Context<'_>, loop_mode: LoopMode) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let mut global_loop_mode = state.loop_mode.lock().await;
         *global_loop_mode = loop_mode;
         Ok(())
@@ -51,7 +50,7 @@ commands! {
         ctx: Context<'_>,
         #[description = "The track to send to the front"] track_number: usize,
     ) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let guild = ctx.guild().unwrap();
         let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
@@ -70,7 +69,7 @@ commands! {
     /// Harlem shake
     #[poise::command(slash_command)]
     async fn shuffle(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let guild = ctx.guild().unwrap();
         let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
@@ -90,7 +89,7 @@ commands! {
     /// I WANT 'EM ALL - I WANT 'EM NOW
     #[poise::command(slash_command)]
     async fn queue(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let guild = ctx.guild().unwrap();
         let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
@@ -126,7 +125,7 @@ commands! {
     /// Who asked?
     #[poise::command(slash_command)]
     async fn now_playing(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let guild = ctx.guild().unwrap();
         let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
@@ -194,7 +193,7 @@ commands! {
     /// Hol' up
     #[poise::command(slash_command)]
     async fn pause(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let guild = ctx.guild().unwrap();
         let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
@@ -207,7 +206,7 @@ commands! {
     /// Keep going
     #[poise::command(slash_command)]
     async fn resume(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let guild = ctx.guild().unwrap();
         let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
@@ -220,7 +219,7 @@ commands! {
     /// Don't care
     #[poise::command(slash_command)]
     async fn skip(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let guild = ctx.guild().unwrap();
         let queues = state.queues.lock().await;
         let queue = queues.get(&guild.id).unwrap();
@@ -233,7 +232,7 @@ commands! {
     /// Jamming
     #[poise::command(slash_command)]
     async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
-        let state = ctx.data().lock().await;    
+        let state = ctx.data().lock().await;
         let guild = ctx.guild().unwrap();
         let channel_id = guild
             .voice_states

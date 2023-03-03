@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use poise::{
-    serenity_prelude::{CreateEmbed, Timestamp, Mutex},
+    serenity_prelude::{CreateEmbed, Mutex, Timestamp},
     FrameworkError,
 };
 
