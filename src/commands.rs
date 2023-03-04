@@ -140,7 +140,7 @@ commands! {
         let author = format!("By: {}", metadata.artist.clone().unwrap_or_else(|| "N/A".into()));
 
         let thumbnail = metadata.thumbnail.clone().unwrap_or_else(||
-            "https://www.keil.com/support/man/docs/ulinkplus/could_not_load_file.png".into(),
+            "https://raw.githubusercontent.com/Giftzwerg02/oxo/19bdb259f38a0fde3231e9957019b889e5d3280c/resources/could_not_load_file.png".into(),
         );
 
         let total_duration = metadata.duration.unwrap_or_default();
@@ -176,7 +176,7 @@ commands! {
                     .title(title)
                     .author(|a| {
                         a.name(author)
-                            .icon_url("https://cdn-icons-png.flaticon.com/512/2995/2995101.png")
+                            .icon_url("https://raw.githubusercontent.com/Giftzwerg02/oxo/19bdb259f38a0fde3231e9957019b889e5d3280c/resources/music.png")
                     })
                     .thumbnail(thumbnail)
                     .description(description)
