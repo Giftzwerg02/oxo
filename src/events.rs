@@ -23,12 +23,7 @@ pub struct EndEventHandler {
 }
 
 impl EndEventHandler {
-    pub fn new(
-        ctx: Context,
-        state: &State,
-        handler: Arc<Mutex<Call>>,
-        guild_id: GuildId,
-    ) -> Self {
+    pub fn new(ctx: Context, state: &State, handler: Arc<Mutex<Call>>, guild_id: GuildId) -> Self {
         Self {
             channel_id: ctx.channel_id(),
             http: ctx.serenity_context().http.clone(),

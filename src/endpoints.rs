@@ -52,7 +52,13 @@ pub async fn api_server(state: Arc<Mutex<State>>) {
             .service(ping)
             .service(queue)
     })
-    .bind(("0.0.0.0", 8080))
+    .bind((
+        std::env::var("API_HOST").unwrap_or("0.0.0.0".to_owned()),
+        std::env::var("API_PORT")
+            .unwrap_or("8080".to_owned())
+            .parse()
+            .expect("Incorrect value for env variable API_PORT"),
+    ))
     .expect("Could not bind port")
     .run()
     .await
