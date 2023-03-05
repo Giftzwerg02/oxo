@@ -7,6 +7,7 @@ use poise::{
 
 use rand::{seq::SliceRandom, thread_rng};
 use songbird::{Event, TrackEvent};
+use tracing::warn;
 
 use crate::{
     bot::{Context, LoopMode, State},
@@ -240,9 +241,13 @@ commands! {
             .and_then(|vs| vs.channel_id)
             .unwrap();
 
-        ctx.say("Loading your track...").await.ok();
+        if let Err(warn) = ctx.say("Loading your track...").await {
+            warn!("{warn}");
+        }
 
         let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
+
+        let source = songbird::ytdl(&url).await?;
 
         let (handler, _) = manager.join(guild.id, channel_id).await;
         let mut handler_lock = handler.lock().await;
@@ -250,7 +255,6 @@ commands! {
         let mut queues = state.queues.lock().await;
         let queue = queues.entry(guild.id).or_default();
 
-        let source = songbird::ytdl(&url).await?;
         let track = queue.add_source(source, &mut handler_lock);
 
         ctx.send(|create| {
