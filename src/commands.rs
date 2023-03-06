@@ -11,6 +11,7 @@ use tracing::warn;
 
 use crate::{
     bot::{Context, LoopMode, State},
+    embed_ext::CreateEmbedExt,
     error::Error,
     events::EndEventHandler,
 };
@@ -36,241 +37,193 @@ macro_rules! commands {
 }
 
 commands! {
-    /// And it goes on and on and on and on and ...
-    #[poise::command(slash_command, rename = "loop")]
-    async fn loop_mode(ctx: Context<'_>, loop_mode: LoopMode) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let mut global_loop_mode = state.loop_mode.lock().await;
-        *global_loop_mode = loop_mode;
-        Ok(())
+/// And it goes on and on and on and on and ...
+#[poise::command(slash_command, rename = "loop")]
+async fn loop_mode(ctx: Context<'_>, loop_mode: LoopMode) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let mut global_loop_mode = state.loop_mode.lock().await;
+    *global_loop_mode = loop_mode;
+    Ok(())
+}
+
+/// In the beninging
+#[poise::command(slash_command)]
+async fn playtop(
+    ctx: Context<'_>,
+    #[description = "The track to send to the front"] track_number: usize,
+) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let queues = state.queues.lock().await;
+    let queue = queues.get(&guild.id).unwrap();
+
+    if track_number <= 1 {
+        return Ok(());
     }
 
-    /// In the beninging
-    #[poise::command(slash_command)]
-    async fn playtop(
-        ctx: Context<'_>,
-        #[description = "The track to send to the front"] track_number: usize,
-    ) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let guild = ctx.guild().unwrap();
-        let queues = state.queues.lock().await;
-        let queue = queues.get(&guild.id).unwrap();
+    queue.pause()?;
+    queue.modify_queue(|q| q.swap(0, track_number - 1));
+    queue.resume()?;
 
-        if track_number <= 1 {
-            return Ok(());
-        }
+    Ok(())
+}
 
-        queue.pause()?;
-        queue.modify_queue(|q| q.swap(0, track_number - 1));
-        queue.resume()?;
+/// Harlem shake
+#[poise::command(slash_command)]
+async fn shuffle(ctx: Context<'_>) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let queues = state.queues.lock().await;
+    let queue = queues.get(&guild.id).unwrap();
 
-        Ok(())
-    }
-
-    /// Harlem shake
-    #[poise::command(slash_command)]
-    async fn shuffle(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let guild = ctx.guild().unwrap();
-        let queues = state.queues.lock().await;
-        let queue = queues.get(&guild.id).unwrap();
-
-        queue.modify_queue(|q| {
-            let mut rng = thread_rng();
-            let [_, rest@..] = q.make_contiguous() else {
+    queue.modify_queue(|q| {
+        let mut rng = thread_rng();
+        let [_, rest@..] = q.make_contiguous() else {
                 return;
             };
 
-            rest.shuffle(&mut rng);
-        });
+        rest.shuffle(&mut rng);
+    });
 
-        Ok(())
-    }
+    Ok(())
+}
 
-    /// I WANT 'EM ALL - I WANT 'EM NOW
-    #[poise::command(slash_command)]
-    async fn queue(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let guild = ctx.guild().unwrap();
-        let queues = state.queues.lock().await;
-        let queue = queues.get(&guild.id).unwrap();
+/// I WANT 'EM ALL - I WANT 'EM NOW
+#[poise::command(slash_command)]
+async fn queue(ctx: Context<'_>) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let queues = state.queues.lock().await;
+    let queue = queues.get(&guild.id).unwrap();
 
-        let list = queue.current_queue();
+    let list = queue.current_queue();
 
-        let formatted_list = list
-            .iter()
-            .map(|track| {
-                format!(
-                    "▷ {}",
-                    track.metadata().title.clone().unwrap_or_else(|| "N/A".into())
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        ctx.send(|create| {
-            create.embed(|e| {
-                e.title("Current Playlist")
-                    .description(format!("{} songs are currently queued", list.len()))
-                    .field("Queue", formatted_list, false)
-                    .colour(Colour::BLITZ_BLUE)
-                    .footer(|f| f.text("XOXO"))
-                    .timestamp(Timestamp::now())
-            })
+    let formatted_list = list
+        .iter()
+        .map(|track| {
+            format!(
+                "▷ {}",
+                track
+                    .metadata()
+                    .title
+                    .clone()
+                    .unwrap_or_else(|| "N/A".into())
+            )
         })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    ctx.send(|create| {
+        create.embed(|e| {
+            e.title("Current Playlist")
+                .description(format!("{} songs are currently queued", list.len()))
+                .field("Queue", formatted_list, false)
+                .colour(Colour::BLITZ_BLUE)
+                .footer(|f| f.text("XOXO"))
+                .timestamp(Timestamp::now())
+        })
+    })
+    .await?;
+
+    Ok(())
+}
+
+/// Who asked?
+#[poise::command(slash_command)]
+async fn now_playing(ctx: Context<'_>) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let queues = state.queues.lock().await;
+    let queue = queues.get(&guild.id).unwrap();
+
+    let current = queue.current().unwrap();
+
+    let metadata = current.metadata();
+    let track_info = current.get_info().await?;
+
+    ctx.send(|create| create.embed(|e| e.song_embed(&metadata, &track_info)))
         .await?;
 
-        Ok(())
+    Ok(())
+}
+
+/// Hol' up
+#[poise::command(slash_command)]
+async fn pause(ctx: Context<'_>) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let queues = state.queues.lock().await;
+    let queue = queues.get(&guild.id).unwrap();
+
+    queue.pause()?;
+
+    Ok(())
+}
+
+/// Keep going
+#[poise::command(slash_command)]
+async fn resume(ctx: Context<'_>) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let queues = state.queues.lock().await;
+    let queue = queues.get(&guild.id).unwrap();
+
+    queue.resume()?;
+
+    Ok(())
+}
+
+/// Don't care
+#[poise::command(slash_command)]
+async fn skip(ctx: Context<'_>) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let queues = state.queues.lock().await;
+    let queue = queues.get(&guild.id).unwrap();
+
+    queue.skip()?;
+
+    Ok(())
+}
+
+/// Jamming
+#[poise::command(slash_command)]
+async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let channel_id = guild
+        .voice_states
+        .get(&ctx.author().id)
+        .and_then(|vs| vs.channel_id)
+        .unwrap();
+
+    if let Err(warn) = ctx.say("Loading your track...").await {
+        warn!("{warn}");
     }
 
-    /// Who asked?
-    #[poise::command(slash_command)]
-    async fn now_playing(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let guild = ctx.guild().unwrap();
-        let queues = state.queues.lock().await;
-        let queue = queues.get(&guild.id).unwrap();
+    let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
 
-        let current = queue.current().unwrap();
+    let source = songbird::ytdl(&url).await?;
 
-        let metadata = current.metadata();
-        let track_info = current.get_info().await?;
+    let (handler, _) = manager.join(guild.id, channel_id).await;
+    let mut handler_lock = handler.lock().await;
 
-        let colour = Colour::BLITZ_BLUE;
-        let title = metadata.title.clone().unwrap_or_else(|| "N/A".into());
-        let author = format!("By: {}", metadata.artist.clone().unwrap_or_else(|| "N/A".into()));
+    let mut queues = state.queues.lock().await;
+    let queue = queues.entry(guild.id).or_default();
 
-        let thumbnail = metadata.thumbnail.clone().unwrap_or_else(||
-            "https://raw.githubusercontent.com/Giftzwerg02/oxo/19bdb259f38a0fde3231e9957019b889e5d3280c/resources/could_not_load_file.png".into(),
-        );
+    let track = queue.add_source(source, &mut handler_lock);
 
-        let total_duration = metadata.duration.unwrap_or_default();
-        let already_played = track_info.position;
+    let metadata = track.metadata();
+    let track_info = track.get_info().await?;
 
-        fn duration_format(duration: &Duration) -> String {
-            let seconds = duration.as_secs();
-            let minutes = seconds / 60;
-            let hours = minutes / 60;
-            let minutes = minutes % 60;
-            let seconds = seconds % 60;
-
-            if hours > 0 {
-                format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
-            } else {
-                format!("{:02}:{:02}", minutes, seconds)
-            }
-        }
-
-        let description = format!(
-            "Duration: `{} / {}`",
-            duration_format(&already_played),
-            duration_format(&total_duration)
-        );
-        let url = metadata
-            .source_url
-            .clone()
-            .unwrap_or_else(|| "https://www.youtube.com/watch?v=dQw4w9WgXcQ".into());
-
-        ctx.send(|create| {
-            create.embed(|e| {
-                e.colour(colour)
-                    .title(title)
-                    .author(|a| {
-                        a.name(author)
-                            .icon_url("https://raw.githubusercontent.com/Giftzwerg02/oxo/19bdb259f38a0fde3231e9957019b889e5d3280c/resources/music.png")
-                    })
-                    .thumbnail(thumbnail)
-                    .description(description)
-                    .url(url)
-                    .footer(|f| f.text("XOXO"))
-                    .timestamp(Timestamp::now())
-            })
-        })
+    ctx.send(|create| create.embed(|e| e.song_embed(&metadata, &track_info)))
         .await?;
 
-        Ok(())
-    }
+    track.add_event(
+        Event::Track(TrackEvent::End),
+        EndEventHandler::new(ctx, &state, handler.clone(), guild.id),
+    )?;
 
-    /// Hol' up
-    #[poise::command(slash_command)]
-    async fn pause(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let guild = ctx.guild().unwrap();
-        let queues = state.queues.lock().await;
-        let queue = queues.get(&guild.id).unwrap();
-
-        queue.pause()?;
-
-        Ok(())
-    }
-
-    /// Keep going
-    #[poise::command(slash_command)]
-    async fn resume(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let guild = ctx.guild().unwrap();
-        let queues = state.queues.lock().await;
-        let queue = queues.get(&guild.id).unwrap();
-
-        queue.resume()?;
-
-        Ok(())
-    }
-
-    /// Don't care
-    #[poise::command(slash_command)]
-    async fn skip(ctx: Context<'_>) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let guild = ctx.guild().unwrap();
-        let queues = state.queues.lock().await;
-        let queue = queues.get(&guild.id).unwrap();
-
-        queue.skip()?;
-
-        Ok(())
-    }
-
-    /// Jamming
-    #[poise::command(slash_command)]
-    async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
-        let state = ctx.data().lock().await;
-        let guild = ctx.guild().unwrap();
-        let channel_id = guild
-            .voice_states
-            .get(&ctx.author().id)
-            .and_then(|vs| vs.channel_id)
-            .unwrap();
-
-        if let Err(warn) = ctx.say("Loading your track...").await {
-            warn!("{warn}");
-        }
-
-        let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
-
-        let source = songbird::ytdl(&url).await?;
-
-        let (handler, _) = manager.join(guild.id, channel_id).await;
-        let mut handler_lock = handler.lock().await;
-
-        let mut queues = state.queues.lock().await;
-        let queue = queues.entry(guild.id).or_default();
-
-        let track = queue.add_source(source, &mut handler_lock);
-
-        ctx.send(|create| {
-            create.content(format!(
-                "Started playing `{}`",
-                track.metadata().title.clone().unwrap_or_else(|| "N/A".into())
-            ))
-        })
-        .await
-        .ok();
-
-        track.add_event(
-            Event::Track(TrackEvent::End),
-            EndEventHandler::new(ctx, &state, handler.clone(), guild.id),
-        )?;
-
-        Ok(())
-    }
+    Ok(())
+}
 }

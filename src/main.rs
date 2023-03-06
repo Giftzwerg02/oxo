@@ -1,5 +1,6 @@
 mod bot;
 mod commands;
+mod embed_ext;
 mod endpoints;
 mod error;
 mod events;

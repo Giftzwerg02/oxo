@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use poise::{
-    serenity_prelude::{CreateEmbed, Mutex, Timestamp},
+    serenity_prelude::{CreateEmbed, Mutex},
     FrameworkError,
 };
 
 use tracing::{error, Value};
 
-use crate::bot::State;
+use crate::{bot::State, embed_ext::CreateEmbedExt};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -89,10 +89,9 @@ fn log_unexpected_error(error: &dyn Value) {
 }
 
 fn error_embed<'a>(create: &'a mut CreateEmbed, error: &Error) -> &'a mut CreateEmbed {
-    create.title("Woopsie doodle, something happened owo")
+    create
+        .error_styling()
+        .title("Woopsie doodle, something happened owo")
         .description("An error occured because of (most likely) your incompetence :)")
-        .thumbnail("https://raw.githubusercontent.com/Giftzwerg02/oxo/33856f5c3ad1549de092f7f58a83b05e1b060398/resources/unsafe-ferris-transparent.png")
         .field("Error", format!("```{:?}```", error), false)
-        .footer(|f| f.text("XOXO"))
-        .timestamp(Timestamp::now())
 }
