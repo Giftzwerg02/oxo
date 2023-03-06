@@ -43,6 +43,10 @@ async fn loop_mode(ctx: Context<'_>, loop_mode: LoopMode) -> CmdRes {
     let state = ctx.data().lock().await;
     let mut global_loop_mode = state.loop_mode.lock().await;
     *global_loop_mode = loop_mode;
+
+    ctx.send(|create| create.embed(|e| e.info_embed(format!("Set loop-mode to {global_loop_mode}"))))
+        .await?;
+
     Ok(())
 }
 

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{time::Duration, fmt::Display};
 
 use poise::serenity_prelude::{Colour, CreateEmbed, Timestamp};
 use songbird::{input::Metadata, tracks::TrackState};
@@ -21,6 +21,7 @@ pub trait CreateEmbedExt {
     fn oxo_footer(&mut self) -> &mut Self;
 
     fn song_embed(&mut self, song_metadata: &Metadata, track_state: &TrackState) -> &mut Self;
+    fn info_embed(&mut self, msg: impl Display) -> &mut Self;
 }
 
 impl CreateEmbedExt for CreateEmbed {
@@ -44,6 +45,12 @@ impl CreateEmbedExt for CreateEmbed {
             .thumbnail(Self::FERRIS)
             .oxo_footer()
             .now()
+    }
+
+    fn info_embed(&mut self, msg: impl Display) -> &mut Self {
+        self.normal_styling()
+            .title("Oki doki!")
+            .description(msg)
     }
 
     fn warn_styling(&mut self) -> &mut Self {
