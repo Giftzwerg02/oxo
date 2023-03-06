@@ -18,7 +18,7 @@ pub trait CreateEmbedExt {
 
     fn now(&mut self) -> &mut Self;
 
-    fn from_oxo(&mut self) -> &mut Self;
+    fn oxo_footer(&mut self) -> &mut Self;
 
     fn song_embed(&mut self, song_metadata: &Metadata, track_state: &TrackState) -> &mut Self;
 }
@@ -27,7 +27,7 @@ impl CreateEmbedExt for CreateEmbed {
     fn error_styling(&mut self) -> &mut Self {
         self.colour(Self::ERROR_COLOUR)
             .thumbnail(Self::UNSAFE_FERRIS)
-            .from_oxo()
+            .oxo_footer()
             .now()
     }
 
@@ -35,21 +35,21 @@ impl CreateEmbedExt for CreateEmbed {
         self.timestamp(Timestamp::now())
     }
 
-    fn from_oxo(&mut self) -> &mut Self {
+    fn oxo_footer(&mut self) -> &mut Self {
         self.footer(|f| f.text("XOXO"))
     }
 
     fn normal_styling(&mut self) -> &mut Self {
         self.colour(Self::NORMAL_COLOUR)
             .thumbnail(Self::FERRIS)
-            .from_oxo()
+            .oxo_footer()
             .now()
     }
 
     fn warn_styling(&mut self) -> &mut Self {
         self.colour(Self::WARN_COLOUR)
             .thumbnail(Self::UNSAFE_FERRIS)
-            .from_oxo()
+            .oxo_footer()
             .now()
     }
 

@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use poise::{
     serenity_prelude::{Colour, Mutex, Timestamp},
@@ -141,7 +141,7 @@ async fn now_playing(ctx: Context<'_>) -> CmdRes {
     let metadata = current.metadata();
     let track_info = current.get_info().await?;
 
-    ctx.send(|create| create.embed(|e| e.song_embed(&metadata, &track_info)))
+    ctx.send(|create| create.embed(|e| e.song_embed(metadata, &track_info)))
         .await?;
 
     Ok(())
@@ -216,7 +216,7 @@ async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
     let metadata = track.metadata();
     let track_info = track.get_info().await?;
 
-    ctx.send(|create| create.embed(|e| e.song_embed(&metadata, &track_info)))
+    ctx.send(|create| create.embed(|e| e.song_embed(metadata, &track_info)))
         .await?;
 
     track.add_event(
