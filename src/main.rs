@@ -1,15 +1,12 @@
 mod bot;
-mod commands;
-mod embed_ext;
-mod endpoints;
 mod error;
-mod events;
+mod api;
 
-use bot::start_bot;
+use bot::bot::start_bot;
 use dotenvy::dotenv;
-use endpoints::api_server;
+use api::endpoints::api_server;
 
-use crate::bot::State;
+use bot::bot::State;
 
 #[macro_export]
 macro_rules! mugly {

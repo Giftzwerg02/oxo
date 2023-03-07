@@ -9,10 +9,11 @@ use rand::{seq::SliceRandom, thread_rng};
 use songbird::{Event, TrackEvent};
 use tracing::warn;
 
-use crate::{
+use crate::error::Error;
+
+use crate::bot::{
     bot::{Context, LoopMode, State},
     embed_ext::CreateEmbedExt,
-    error::Error,
     events::EndEventHandler,
 };
 

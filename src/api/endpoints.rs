@@ -5,7 +5,7 @@ use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use poise::serenity_prelude::Mutex;
 use serde::Serialize;
 
-use crate::bot::State;
+use crate::bot::bot::State;
 
 type DataState = web::Data<Arc<Mutex<State>>>;
 

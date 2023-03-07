@@ -4,7 +4,7 @@ use poise::serenity_prelude::{self as serenity, GuildId, Mutex};
 use songbird::{tracks::TrackQueue, SerenityInit};
 use tracing::error;
 
-use crate::commands::commands;
+use crate::bot::commands::commands;
 use crate::error::{on_error, Error};
 
 pub type Context<'a> = poise::Context<'a, Arc<Mutex<State>>, Error>;
