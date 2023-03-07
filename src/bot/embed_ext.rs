@@ -1,4 +1,4 @@
-use std::{time::Duration, fmt::Display};
+use std::{fmt::Display, time::Duration};
 
 use poise::serenity_prelude::{Colour, CreateEmbed, Timestamp};
 use songbird::{input::Metadata, tracks::TrackState};
@@ -48,9 +48,7 @@ impl CreateEmbedExt for CreateEmbed {
     }
 
     fn info_embed(&mut self, msg: impl Display) -> &mut Self {
-        self.normal_styling()
-            .title("Oki doki!")
-            .description(msg)
+        self.normal_styling().title("Oki doki!").description(msg)
     }
 
     fn warn_styling(&mut self) -> &mut Self {

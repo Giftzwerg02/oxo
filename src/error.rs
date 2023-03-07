@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
 use poise::{
     serenity_prelude::{CreateEmbed, Mutex},
@@ -10,6 +10,50 @@ use tracing::{error, Value};
 use crate::bot::{bot::State, embed_ext::CreateEmbedExt};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
+
+#[derive(Debug)]
+pub enum AppErrorType {
+    NotFound,
+}
+
+#[derive(Debug)]
+pub struct AppError {
+    pub cause: Option<String>,
+    pub message: Option<String>,
+    pub error_type: AppErrorType,
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl AppError {
+    pub fn message(&self) -> String {
+        match &*self {
+            AppError {
+                cause: _,
+                message: Some(message),
+                error_type: _,
+            } => message.clone(),
+            AppError {
+                cause: _,
+                message: None,
+                error_type: AppErrorType::NotFound,
+            } => "The requested item was not found".to_string(),
+            _ => "An unexpected error has occured".to_string(),
+        }
+    }
+
+    pub fn not_found() -> Self {
+        AppError {
+            cause: None,
+            message: None,
+            error_type: AppErrorType::NotFound,
+        }
+    }
+}
 
 pub async fn on_error(error: FrameworkError<'_, Arc<Mutex<State>>, Error>) {
     let res = match error {

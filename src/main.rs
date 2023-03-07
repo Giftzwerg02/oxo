@@ -1,10 +1,11 @@
+mod api;
 mod bot;
 mod error;
-mod api;
+mod mappers;
 
+use api::endpoints::api_server;
 use bot::bot::start_bot;
 use dotenvy::dotenv;
-use api::endpoints::api_server;
 
 use bot::bot::State;
 
