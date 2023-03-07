@@ -1,9 +1,7 @@
-use poise::async_trait;
 use songbird::tracks::TrackHandle;
 
 use crate::api::types::{Author, Track};
 
-#[async_trait]
 impl From<TrackHandle> for Track {
     fn from(track: TrackHandle) -> Self {
         let metadata = track.metadata().clone();

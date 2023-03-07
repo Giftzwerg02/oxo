@@ -4,8 +4,8 @@ use actix_cors::Cors;
 use actix_web::{
     get,
     http::StatusCode,
-    web::{self, Json},
-    App, HttpResponse, HttpServer, Responder, ResponseError, Result,
+    web::{self, Json, Path},
+    App, HttpResponse, HttpServer, Responder, ResponseError, Result, post,
 };
 use poise::serenity_prelude::{GuildId, Mutex};
 use serde::Serialize;
@@ -28,6 +28,7 @@ impl ResponseError for AppError {
     fn status_code(&self) -> actix_web::http::StatusCode {
         match self.error_type {
             error::AppErrorType::NotFound => StatusCode::NOT_FOUND,
+            error::AppErrorType::SongbirdError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -58,7 +59,7 @@ async fn guilds_with_queues(state: DataState) -> Result<Json<Vec<GuildId>>> {
 }
 
 #[get("/queues/queue/{guild_id}")]
-async fn queue(state: DataState, guild_id: web::Path<u64>) -> Result<Json<Vec<Track>>> {
+async fn queue(state: DataState, guild_id: Path<u64>) -> Result<Json<Vec<Track>>> {
     let guild_id = GuildId(*guild_id);
     let state = state.lock().await;
     let queues = state.queues.lock().await;
@@ -71,6 +72,36 @@ async fn queue(state: DataState, guild_id: web::Path<u64>) -> Result<Json<Vec<Tr
         .collect::<Vec<_>>();
 
     Ok(Json(tracks))
+}
+
+#[post("/queues/queue/{guild_id}/add-song")]
+async fn add_song_to_queue(
+    state: DataState,
+    guild_id: Path<u64>,
+    track_url: Json<String>,
+) -> Result<Json<Track>> {
+    let guild_id = GuildId(*guild_id);
+    let state = state.lock().await;
+    let queues = state.queues.lock().await;
+    let this_queue = queues
+        .get(&guild_id)
+        .ok_or(AppError::not_found())?;
+
+    let voice = state.songbird_instance.clone();
+    let handler = voice
+        .get(guild_id)
+        .ok_or(AppError::not_found())?;
+
+    let source = songbird::ytdl(track_url.0)
+        .await
+        .map_err(AppError::from)?;
+
+    let mut handler = handler.lock().await;
+
+    let track = this_queue.add_source(source, &mut handler);
+    
+
+    Ok(Json(track.into()))
 }
 
 pub async fn api_server(state: Arc<Mutex<State>>) {
