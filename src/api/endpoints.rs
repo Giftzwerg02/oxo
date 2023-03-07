@@ -8,7 +8,7 @@ use actix_web::{
     App, HttpResponse, HttpServer, Responder, ResponseError, Result, post,
 };
 use poise::serenity_prelude::{GuildId, Mutex};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use crate::{
     bot::bot::State,
@@ -74,11 +74,16 @@ async fn queue(state: DataState, guild_id: Path<u64>) -> Result<Json<Vec<Track>>
     Ok(Json(tracks))
 }
 
+#[derive(Deserialize)]
+struct TrackUrl {
+    track_url: String
+}
+
 #[post("/queues/queue/{guild_id}/add-song")]
 async fn add_song_to_queue(
     state: DataState,
     guild_id: Path<u64>,
-    track_url: Json<String>,
+    track_url: Json<TrackUrl>,
 ) -> Result<Json<Track>> {
     let guild_id = GuildId(*guild_id);
     let state = state.lock().await;
@@ -92,7 +97,7 @@ async fn add_song_to_queue(
         .get(guild_id)
         .ok_or(AppError::not_found())?;
 
-    let source = songbird::ytdl(track_url.0)
+    let source = songbird::ytdl(track_url.0.track_url)
         .await
         .map_err(AppError::from)?;
 
@@ -121,7 +126,8 @@ pub async fn api_server(state: Arc<Mutex<State>>) {
                 web::scope("/api")
                     .service(ping)
                     .service(guilds_with_queues)
-                    .service(queue),
+                    .service(queue)
+                    .service(add_song_to_queue),
             )
     })
     .bind((host, port))

@@ -38,7 +38,12 @@ pub enum LoopMode {
 
 pub async fn start_bot(state: Arc<Mutex<State>>) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let client_settings_state = state.clone();
+    
+    let state_clone = state.clone();
+    let state_clone = state_clone.lock().await;
+    let songbird_instance = state_clone.songbird_instance.clone();
+
+    drop(state_clone);
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -55,8 +60,6 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
             })
         })
         .client_settings(move |builder| {
-            let state = client_settings_state.blocking_lock();
-            let songbird_instance = state.songbird_instance.clone();
             builder.register_songbird_with(songbird_instance)
         })
         .build()
