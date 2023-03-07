@@ -21,9 +21,9 @@ pub struct State {
 impl Default for State {
     fn default() -> Self {
         Self {
-            queues: Default::default(), 
-            loop_mode: Default::default(), 
-            songbird_instance: Songbird::serenity() 
+            queues: Default::default(),
+            loop_mode: Default::default(),
+            songbird_instance: Songbird::serenity(),
         }
     }
 }
@@ -38,7 +38,7 @@ pub enum LoopMode {
 
 pub async fn start_bot(state: Arc<Mutex<State>>) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    
+
     let state_clone = state.clone();
     let state_clone = state_clone.lock().await;
     let songbird_instance = state_clone.songbird_instance.clone();
@@ -59,9 +59,7 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
                 Ok(state.clone())
             })
         })
-        .client_settings(move |builder| {
-            builder.register_songbird_with(songbird_instance)
-        })
+        .client_settings(move |builder| builder.register_songbird_with(songbird_instance))
         .build()
         .await
         .unwrap();

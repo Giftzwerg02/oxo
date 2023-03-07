@@ -5,7 +5,6 @@ use poise::{
     FrameworkError,
 };
 
-use songbird::error;
 use tracing::{error, Value};
 
 use crate::bot::{bot::State, embed_ext::CreateEmbedExt};
@@ -15,7 +14,7 @@ pub type Error = Box<dyn std::error::Error + Send + Sync>;
 #[derive(Debug)]
 pub enum AppErrorType {
     NotFound,
-    SongbirdError(SongbirdError)
+    SongbirdError(SongbirdError),
 }
 
 #[derive(Debug)]
@@ -59,7 +58,7 @@ impl AppError {
 
 #[derive(Debug)]
 pub enum SongbirdError {
-    Input(songbird::input::error::Error)
+    Input(songbird::input::error::Error),
 }
 
 impl From<songbird::input::error::Error> for AppError {

@@ -4,11 +4,12 @@ use actix_cors::Cors;
 use actix_web::{
     get,
     http::StatusCode,
+    post,
     web::{self, Json, Path},
-    App, HttpResponse, HttpServer, Responder, ResponseError, Result, post,
+    App, HttpResponse, HttpServer, Responder, ResponseError, Result,
 };
 use poise::serenity_prelude::{GuildId, Mutex};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     bot::bot::State,
@@ -76,7 +77,7 @@ async fn queue(state: DataState, guild_id: Path<u64>) -> Result<Json<Vec<Track>>
 
 #[derive(Deserialize)]
 struct TrackUrl {
-    track_url: String
+    track_url: String,
 }
 
 #[post("/queues/queue/{guild_id}/add-song")]
@@ -88,14 +89,10 @@ async fn add_song_to_queue(
     let guild_id = GuildId(*guild_id);
     let state = state.lock().await;
     let queues = state.queues.lock().await;
-    let this_queue = queues
-        .get(&guild_id)
-        .ok_or(AppError::not_found())?;
+    let this_queue = queues.get(&guild_id).ok_or(AppError::not_found())?;
 
     let voice = state.songbird_instance.clone();
-    let handler = voice
-        .get(guild_id)
-        .ok_or(AppError::not_found())?;
+    let handler = voice.get(guild_id).ok_or(AppError::not_found())?;
 
     let source = songbird::ytdl(track_url.0.track_url)
         .await
@@ -104,7 +101,6 @@ async fn add_song_to_queue(
     let mut handler = handler.lock().await;
 
     let track = this_queue.add_source(source, &mut handler);
-    
 
     Ok(Json(track.into()))
 }

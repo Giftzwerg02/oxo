@@ -207,7 +207,7 @@ async fn play(ctx: Context<'_>, #[description = "URL"] url: String) -> CmdRes {
     }
 
     let manager = state.songbird_instance.clone();
-    
+
     let source = songbird::ytdl(&url).await?;
 
     let (handler, _) = manager.join(guild.id, channel_id).await;
