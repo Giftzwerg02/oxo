@@ -76,10 +76,10 @@ async fn queue(state: DataState, guild_id: web::Path<u64>) -> Result<Json<Vec<Tr
 pub async fn api_server(state: Arc<Mutex<State>>) {
     let host = std::env::var("API_HOST").unwrap_or("0.0.0.0".to_owned());
     let port = std::env::var("API_PORT")
-            .unwrap_or("8080".to_owned())
-            .parse()
-            .expect("Incorrect value for env variable API_PORT");
-    
+        .unwrap_or("8080".to_owned())
+        .parse()
+        .expect("Incorrect value for env variable API_PORT");
+
     HttpServer::new(move || {
         let cors = Cors::permissive();
 

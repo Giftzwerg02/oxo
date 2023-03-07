@@ -31,7 +31,7 @@ impl fmt::Display for AppError {
 
 impl AppError {
     pub fn message(&self) -> String {
-        match &*self {
+        match self {
             AppError {
                 cause: _,
                 message: Some(message),
