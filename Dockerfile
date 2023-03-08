@@ -17,8 +17,8 @@ RUN apt-get update && \
     apt-get install -y upx libopus-dev cmake
 RUN cargo build --release && \
     upx --lzma --best /app/target/release/oxo && \
-    upx -1 /ffmpeg && \
-    upx -1 /yt-dlp
+    upx -1 /ffmpeg
+    # Note: yt-dlp appears to be not compressable
 
 FROM gcr.io/distroless/cc:nonroot
 WORKDIR /app
