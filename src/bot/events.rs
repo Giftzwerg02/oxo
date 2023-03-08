@@ -9,7 +9,7 @@ use songbird::{create_player, Call, Event, EventContext, EventHandler, TrackEven
 
 use tracing::debug;
 
-use crate::bot::{Context, LoopMode, Queues, State};
+use crate::bot::bot::{Context, LoopMode, Queues, State};
 
 #[derive(Clone)]
 pub struct EndEventHandler {
@@ -23,12 +23,7 @@ pub struct EndEventHandler {
 }
 
 impl EndEventHandler {
-    pub fn new(
-        ctx: Context,
-        state: &State,
-        handler: Arc<Mutex<Call>>,
-        guild_id: GuildId,
-    ) -> Self {
+    pub fn new(ctx: Context, state: &State, handler: Arc<Mutex<Call>>, guild_id: GuildId) -> Self {
         Self {
             channel_id: ctx.channel_id(),
             http: ctx.serenity_context().http.clone(),

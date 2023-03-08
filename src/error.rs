@@ -1,15 +1,75 @@
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
 use poise::{
-    serenity_prelude::{CreateEmbed, Mutex, Timestamp},
+    serenity_prelude::{CreateEmbed, Mutex},
     FrameworkError,
 };
 
 use tracing::{error, Value};
 
-use crate::bot::State;
+use crate::bot::{bot::State, embed_ext::CreateEmbedExt};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
+
+#[derive(Debug)]
+pub enum AppErrorType {
+    NotFound,
+    SongbirdError(SongbirdError),
+}
+
+#[derive(Debug)]
+pub struct AppError {
+    pub cause: Option<String>,
+    pub message: Option<String>,
+    pub error_type: AppErrorType,
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl AppError {
+    pub fn message(&self) -> String {
+        match self {
+            AppError {
+                cause: _,
+                message: Some(message),
+                error_type: _,
+            } => message.clone(),
+            AppError {
+                cause: _,
+                message: None,
+                error_type: AppErrorType::NotFound,
+            } => "The requested item was not found".to_string(),
+            _ => "An unexpected error has occured".to_string(),
+        }
+    }
+
+    pub fn not_found() -> Self {
+        AppError {
+            cause: None,
+            message: None,
+            error_type: AppErrorType::NotFound,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum SongbirdError {
+    Input(songbird::input::error::Error),
+}
+
+impl From<songbird::input::error::Error> for AppError {
+    fn from(error: songbird::input::error::Error) -> Self {
+        Self {
+            cause: Some(error.to_string()),
+            message: Some(error.to_string()),
+            error_type: AppErrorType::SongbirdError(SongbirdError::Input(error)),
+        }
+    }
+}
 
 pub async fn on_error(error: FrameworkError<'_, Arc<Mutex<State>>, Error>) {
     let res = match error {
@@ -89,10 +149,9 @@ fn log_unexpected_error(error: &dyn Value) {
 }
 
 fn error_embed<'a>(create: &'a mut CreateEmbed, error: &Error) -> &'a mut CreateEmbed {
-    create.title("Woopsie doodle, something happened owo")
+    create
+        .error_styling()
+        .title("Woopsie doodle, something happened owo")
         .description("An error occured because of (most likely) your incompetence :)")
-        .thumbnail("https://raw.githubusercontent.com/Giftzwerg02/oxo/33856f5c3ad1549de092f7f58a83b05e1b060398/resources/unsafe-ferris-transparent.png")
         .field("Error", format!("```{:?}```", error), false)
-        .footer(|f| f.text("XOXO"))
-        .timestamp(Timestamp::now())
 }
