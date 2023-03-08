@@ -2,6 +2,7 @@
 # https://github.com/mayurwaghmode/multi-arch-demo/blob/81f0d48f7781439798596a7846111c37eb05c46f/.github/workflows/multi-arch_images_build.yml
 name: Build Docker Image
 on:
+  workflow_dispatch:
   push:
     branches:
       - staging
