@@ -9,7 +9,7 @@ env:
   IMAGE_REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   IMAGE_TAG: latest
-  IMAGE_ARCHS: linux/amd64, linux/arm64
+  IMAGE_ARCHS: linux/amd64,linux/arm64
 
 jobs:
   docker_build:
