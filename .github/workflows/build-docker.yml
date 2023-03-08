@@ -9,7 +9,6 @@ on:
 
 env:
   IMAGE_REGISTRY: ghcr.io
-  IMAGE_TAG: latest
   IMAGE_ARCHS: linux/amd64,linux/arm64
 
 jobs:
