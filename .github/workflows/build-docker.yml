@@ -1,22 +1,42 @@
+# Based on 
+# https://github.com/mayurwaghmode/multi-arch-demo/blob/81f0d48f7781439798596a7846111c37eb05c46f/.github/workflows/multi-arch_images_build.yml
 name: Build Docker Image
 on:
-  # publish on releases, e.g. v2.1.13 (image tagged as "2.1.13" - "v" prefix is removed)
-  release:
-    types: [ published ]
-  # publish on pushes to the main branch (image tagged as "latest")
   push:
     branches:
       - staging
 
+env:
+  IMAGE_NAME: oxo
+  IMAGE_TAG: latest
+
 jobs:
-  docker_publish:
-    runs-on: "ubuntu-20.04"
+  docker_build:
+    name: Build and Push Image
+    runs-on: ubuntu-20.04
+    
     steps:
       - uses: actions/checkout@v2
-
-      # https://github.com/marketplace/actions/push-to-ghcr
-      - name: Build and publish a Docker image for ${{ github.repository }}
-        uses: macbre/push-to-ghcr@master
+        
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        
+      - name: Build image 
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
         with:
-          image_name: ${{ github.repository }}  # it will be lowercased internally
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          image: ${{ env.IMAGE_NAME }}
+          tags: ${{ env.IMAGE_TAG }}
+          archs: amd64, arm64
+          dockerfiles: |
+            ./Dockerfile
+            
+      - name: Push To quay.io
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          registry: ghcr.io
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
