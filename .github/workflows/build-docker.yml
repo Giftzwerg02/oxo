@@ -22,7 +22,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         with:
-          platforms: ${{ IMAGE_ARCHS }}
+          platforms: ${{ env.IMAGE_ARCHS }}
 
       - name: Build Image
         run: |
