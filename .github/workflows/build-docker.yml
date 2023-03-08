@@ -1,5 +1,3 @@
-# Based on 
-# https://github.com/mayurwaghmode/multi-arch-demo/blob/81f0d48f7781439798596a7846111c37eb05c46f/.github/workflows/multi-arch_images_build.yml
 name: Build Docker Image
 on:
   workflow_dispatch:
@@ -8,8 +6,10 @@ on:
       - staging
 
 env:
-  IMAGE_NAME: oxo
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
   IMAGE_TAG: latest
+  IMAGE_ARCHS: linux/amd64, linux/arm64
 
 jobs:
   docker_build:
@@ -19,25 +19,22 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        
-      - name: Build image 
-        id: build-image
-        uses: redhat-actions/buildah-build@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
         with:
-          image: ${{ env.IMAGE_NAME }}
-          tags: ${{ env.IMAGE_TAG }}
-          archs: amd64, arm64
-          dockerfiles: |
-            ./Dockerfile
+          platforms: ${{ IMAGE_ARCHS }}
+
+      - name: Build Image
+        run: |
+          docker buildx build \
+          --tag ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+          --platform ${{ env.IMAGE_ARCHS }} .
             
       - name: Push To Registry
-        id: push-to-registry
         uses: redhat-actions/push-to-registry@v2
         with:
-          registry: ghcr.io
-          image: ${{ steps.build-image.outputs.image }}
-          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ${{ env.IMAGE_REGISTRY }}
+          image: ${{ env.IMAGE_NAME }}
+          tags: ${{ env.IMAGE_TAG }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
