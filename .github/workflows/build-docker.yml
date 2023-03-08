@@ -31,8 +31,8 @@ jobs:
           dockerfiles: |
             ./Dockerfile
             
-      - name: Push To quay.io
-        id: push-to-quay
+      - name: Push To Registry
+        id: push-to-registry
         uses: redhat-actions/push-to-registry@v2
         with:
           registry: ghcr.io
