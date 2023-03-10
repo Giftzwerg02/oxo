@@ -12,7 +12,7 @@ use poise::serenity_prelude::{GuildId, Mutex};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    bot::bot::State,
+    client::bot::State,
     error::{self, AppError},
 };
 

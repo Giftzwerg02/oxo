@@ -5,7 +5,7 @@ use songbird::Songbird;
 use songbird::{tracks::TrackQueue, SerenityInit};
 use tracing::error;
 
-use crate::bot::commands::commands;
+use crate::client::commands::commands;
 use crate::error::{on_error, Error};
 
 pub type Context<'a> = poise::Context<'a, Arc<Mutex<State>>, Error>;

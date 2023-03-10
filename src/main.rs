@@ -1,13 +1,13 @@
 mod api;
-mod bot;
+mod client;
 mod error;
 mod mappers;
 
 use api::endpoints::api_server;
-use bot::bot::start_bot;
+use client::bot::start_bot;
 use dotenvy::dotenv;
 
-use bot::bot::State;
+use client::bot::State;
 
 #[macro_export]
 macro_rules! mugly {

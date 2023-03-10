@@ -11,7 +11,7 @@ use tracing::warn;
 
 use crate::error::Error;
 
-use crate::bot::{
+use crate::client::{
     bot::{Context, LoopMode, State},
     embed_ext::CreateEmbedExt,
     events::EndEventHandler,
