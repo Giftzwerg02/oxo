@@ -9,7 +9,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use songbird::{Event, TrackEvent};
 use tracing::warn;
 
-use crate::error::Error;
+use crate::{error::Error, bot::bot::LofiSong};
 
 use crate::client::{
     bot::{Context, LoopMode, State},
@@ -38,6 +38,49 @@ macro_rules! commands {
 }
 
 commands! {
+
+/// Study 'n Chill
+#[poise::command(slash_command)]
+async fn lofi(ctx: Context<'_>, lofi_song: LofiSong) -> CmdRes {    
+    let state = ctx.data().lock().await;
+    let guild = ctx.guild().unwrap();
+    let channel_id = guild
+        .voice_states
+        .get(&ctx.author().id)
+        .and_then(|vs| vs.channel_id)
+        .unwrap();
+
+    if let Err(warn) = ctx.say("Loading your track...").await {
+        warn!("{warn}");
+    }
+
+    let manager = state.songbird_instance.clone();
+
+    let source = songbird::ytdl(lofi_song.url()).await?;
+
+    let (handler, _) = manager.join(guild.id, channel_id).await;
+    let mut handler_lock = handler.lock().await;
+
+    let mut queues = state.queues.lock().await;
+    let queue = queues.entry(guild.id).or_default();
+
+    let track = queue.add_source(source, &mut handler_lock);
+
+    let metadata = track.metadata();
+    let track_info = track.get_info().await?;
+
+    ctx.send(|create| create.embed(|e| e.song_embed(metadata, &track_info)))
+        .await?;
+
+    track.add_event(
+        Event::Track(TrackEvent::End),
+        EndEventHandler::new(ctx, &state, handler.clone(), guild.id),
+    )?;
+
+    Ok(())
+}
+
+
 /// And it goes on and on and on and on and ...
 #[poise::command(slash_command, rename = "loop")]
 async fn loop_mode(ctx: Context<'_>, loop_mode: LoopMode) -> CmdRes {
