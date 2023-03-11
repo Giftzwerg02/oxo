@@ -9,7 +9,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use songbird::{Event, TrackEvent};
 use tracing::warn;
 
-use crate::{error::Error, bot::bot::LofiSong};
+use crate::{error::Error, client::bot::LofiSong};
 
 use crate::client::{
     bot::{Context, LoopMode, State},
