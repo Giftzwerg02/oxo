@@ -1,28 +1,36 @@
-FROM rust:1-bullseye as build
+FROM rust:1-slim-bullseye as builder
 WORKDIR /app
 COPY . /app
-COPY --from=mwader/static-ffmpeg:6.0 /ffmpeg /ffmpeg
 
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
 RUN apt-get update && \
-    apt-get install -y upx libopus-dev cmake
-RUN if [ $(uname -m) = "x86_64" ]; then YTDLP_BIN_NAME=yt-dlp_linux; \
-    else YTDLP_BIN_NAME=yt-dlp_linux_$(uname -m); fi && \
-    wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YTDLP_BIN_NAME -O /yt-dlp && \
+    apt-get install -y libopus-dev cmake wget
+RUN if [ $(uname -m) = "x86_64" ]; then YTDLP_BIN=yt-dlp_linux; \
+    else YTDLP_BIN=yt-dlp_linux_$(uname -m); fi && \
+    wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YTDLP_BIN -O /yt-dlp && \
     chmod +x /yt-dlp
-RUN cargo build --release && \
-    upx --lzma --best /app/target/release/oxo && \
-    upx -1 /ffmpeg && \
-    upx -1 /yt-dlp
+RUN cargo build --release
+
+
+FROM alpine:3 AS compressor
+
+COPY --from=mwader/static-ffmpeg:6.0 /ffmpeg /ffmpeg
+COPY --from=builder /app/target/release/oxo /oxo
+COPY --from=builder /yt-dlp /yt-dlp
+
+RUN apk add upx wget && \
+    upx --lzma --best /oxo && \
+    upx -1 /yt-dlp && \
+    upx -1 /ffmpeg
+
 
 FROM gcr.io/distroless/cc:nonroot
-WORKDIR /app
 
-COPY --from=build /app/target/release/oxo /app/oxo
-COPY --from=build /ffmpeg /bin/
-COPY --from=build /yt-dlp /bin/
+COPY --from=compressor /oxo /bin/
+COPY --from=compressor /ffmpeg /bin/
+COPY --from=compressor /yt-dlp /bin/
 
 USER nonroot
 
-CMD [ "/app/oxo" ]
+CMD [ "oxo" ]
