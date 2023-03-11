@@ -3,6 +3,7 @@ WORKDIR /app
 COPY . /app
 
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+ENV LIBOPUS_STATIC=true
 
 RUN apt-get update && \
     apt-get install -y libopus-dev cmake wget
