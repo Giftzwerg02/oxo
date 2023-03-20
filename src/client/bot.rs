@@ -97,16 +97,16 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
         .await
         .unwrap();
 
-    let tmp_framework = framework.clone();
+    let status = framework.clone().start();
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await
             .expect("Could not register ctrl+c handler");
-        let shard_manager = tmp_framework.shard_manager();
+        let shard_manager = framework.shard_manager();
         shard_manager.lock().await.shutdown_all().await;
     });
 
-    if let Err(why) = framework.start().await {
+    if let Err(why) = status.await {
         error!("Client error: {:?}", why);
     }
 }
