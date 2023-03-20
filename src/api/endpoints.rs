@@ -10,6 +10,7 @@ use actix_web::{
 };
 use poise::serenity_prelude::{GuildId, Mutex};
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 use crate::{
     client::bot::State,
@@ -106,6 +107,11 @@ async fn add_song_to_queue(
 }
 
 pub async fn api_server(state: Arc<Mutex<State>>) {
+    if std::env::var("DISABLE_WEB_API").is_ok() {
+        info!("Not starting api-server because env variable DISABLE_WEB_API is set");
+        return;
+    }
+
     let host = std::env::var("API_HOST").unwrap_or("0.0.0.0".to_owned());
     let port = std::env::var("API_PORT")
         .unwrap_or("8080".to_owned())
