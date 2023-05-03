@@ -37,8 +37,7 @@ pub enum LoopMode {
     Queue,
 }
 
-#[derive(Debug, poise::ChoiceParameter, Clone, Default)]
-#[derive(Assoc)]
+#[derive(Debug, poise::ChoiceParameter, Clone, Default, Assoc)]
 #[func(pub fn is_24_7(&self) -> bool)]
 #[func(pub fn url(&self) -> &str)]
 pub enum LofiSong {
@@ -66,8 +65,15 @@ pub enum LofiSong {
     #[assoc(is_24_7 = false)]
     #[assoc(url = "https://www.youtube.com/watch?v=1XFtipo7v0Y")]
     Djent,
-}
 
+    #[assoc(is_24_7 = false)]
+    #[assoc(url = "https://www.youtube.com/watch?v=gnKZqk-CqBs")]
+    Berserk,
+
+    #[assoc(is_24_7 = false)]
+    #[assoc(url = "https://www.youtube.com/watch?v=ZBGui2nZ0c0")]
+    BigIron,
+}
 
 pub async fn start_bot(state: Arc<Mutex<State>>) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
