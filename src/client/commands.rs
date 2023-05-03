@@ -37,6 +37,7 @@ macro_rules! commands {
     };
 }
 
+// Ref Suggestion: Prevent this macro from f*cking up intelisense
 commands! {
 
 /// Study 'n Chill
@@ -69,6 +70,7 @@ async fn lofi(ctx: Context<'_>, lofi_song: LofiSong) -> CmdRes {
     let metadata = track.metadata();
     let track_info = track.get_info().await?;
 
+    // Ref Suggestion: This is often used: can we simplify this?
     ctx.send(|create| create.embed(|e| e.song_embed(metadata, &track_info)))
         .await?;
 
@@ -109,6 +111,7 @@ async fn playtop(
         return Ok(());
     }
 
+    // Ref Suggestion: Document why do we have to pause/resume
     queue.pause()?;
     queue.modify_queue(|q| q.swap(0, track_number - 1));
     queue.resume()?;
