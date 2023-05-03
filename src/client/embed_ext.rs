@@ -3,6 +3,7 @@ use std::{fmt::Display, time::Duration};
 use poise::serenity_prelude::{Colour, CreateEmbed, Timestamp};
 use songbird::{input::Metadata, tracks::TrackState};
 
+// Ref Suggestion: Do we need an extra trait for this?
 pub trait CreateEmbedExt {
     const ERROR_COLOUR: Colour = Colour::DARK_RED;
     const WARN_COLOUR: Colour = Colour::ORANGE;

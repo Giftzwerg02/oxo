@@ -9,6 +9,7 @@ use tracing::error;
 use crate::client::commands::commands;
 use crate::error::{on_error, Error};
 
+// Ref Suggestion: Please document this
 pub type Context<'a> = poise::Context<'a, Arc<Mutex<State>>, Error>;
 
 pub type Queues = Arc<Mutex<HashMap<GuildId, TrackQueue>>>;
@@ -37,6 +38,7 @@ pub enum LoopMode {
     Queue,
 }
 
+// Ref Suggestion: Implement this as a YAML/TOML/Similar Config
 #[derive(Debug, poise::ChoiceParameter, Clone, Default)]
 #[derive(Assoc)]
 #[func(pub fn is_24_7(&self) -> bool)]
@@ -78,6 +80,8 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
 
     drop(state_clone);
 
+    // Ref Suggestion: Consider documenting the steps to start the bot
+    // And replace the .unwrap() with .expect() or proper error handling
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: commands().unwrap(),
@@ -98,6 +102,9 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
         .unwrap();
 
     let status = framework.clone().start();
+
+    // Ref Suggestion: Document / abstract CTRL-C handling
+    // As it's not immediately obvious what this does
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await

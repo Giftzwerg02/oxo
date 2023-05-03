@@ -90,6 +90,8 @@ async fn add_song_to_queue(
     let guild_id = GuildId(*guild_id);
     let state = state.lock().await;
     let queues = state.queues.lock().await;
+
+    // REF Suggestion: Make clippy shut up, somehow
     let this_queue = queues.get(&guild_id).ok_or(AppError::not_found())?;
 
     let voice = state.songbird_instance.clone();
@@ -112,6 +114,7 @@ pub async fn api_server(state: Arc<Mutex<State>>) {
         return;
     }
 
+    // REF Suggestion: Make clippy shut up, somehow
     let host = std::env::var("API_HOST").unwrap_or("0.0.0.0".to_owned());
     let port = std::env::var("API_PORT")
         .unwrap_or("8080".to_owned())
