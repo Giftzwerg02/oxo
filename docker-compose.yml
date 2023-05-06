@@ -8,11 +8,13 @@ services:
     secrets:
       - discord_token
     labels:
-      com.centurylinklabs.watchtower.enable: "true"
+      oxo.autoupdate: "true"
   shepherd:
     image: mazzolino/shepherd
     environment:
-      - SLEEP_TIME=10s
+      SLEEP_TIME: "10s"
+      IMAGE_AUTOCLEAN_LIMIT: "5"
+      FILTER_SERVICES: "label=oxo.autoupdate"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
