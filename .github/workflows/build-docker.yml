@@ -42,8 +42,6 @@ jobs:
       - name: Push To Registry
         uses: redhat-actions/push-to-registry@v2
         with:
-          registry: ${{ env.IMAGE_REGISTRY }}
-          image: ${{ env.IMAGE_NAME }}
-          tags: ${{ env.IMAGE_TAG }}
+          tags: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
