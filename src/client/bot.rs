@@ -1,3 +1,5 @@
+use std::env::VarError;
+use std::fs;
 use std::{collections::HashMap, sync::Arc};
 
 use enum_assoc::Assoc;
@@ -76,7 +78,7 @@ pub enum LofiSong {
 }
 
 pub async fn start_bot(state: Arc<Mutex<State>>) {
-    let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
+    let token = get_discord_token();
 
     let state_clone = state.clone();
     let state_clone = state_clone.lock().await;
@@ -115,4 +117,18 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
     if let Err(why) = status.await {
         error!("Client error: {:?}", why);
     }
+}
+
+fn get_discord_token() -> String {
+    fn read_token_from_file(_: VarError) -> Result<String, Error> {
+        let path = std::env::var("DISCORD_TOKEN_FILE")?;
+        let content = fs::read_to_string(path)?;
+
+        // No, we cannot just return fs::read_to_string because of Box<...> Shenenigans
+        Ok(content)
+    }
+
+    std::env::var("DISCORD_TOKEN")
+        .or_else(read_token_from_file)
+        .expect("missing DISCORD_TOKEN")
 }
