@@ -1,0 +1,20 @@
+version: "3"
+services:
+  oxo:
+    image: ghcr.io/giftzwerg02/oxo:latest
+    init: true
+    environment:
+      - DISCORD_TOKEN_FILE=/run/secrets/discord_token
+    secrets:
+      - discord_token
+    labels:
+      com.centurylinklabs.watchtower.enable: true
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 --cleanup --label-enable
+
+secrets:
+  discord_token:
+    external: true
