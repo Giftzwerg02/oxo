@@ -9,7 +9,7 @@ on:
 
 env:
   IMAGE_REGISTRY: ghcr.io
-  IMAGE_ARCHS: linux/amd64,linux/arm64
+  IMAGE_ARCHS: linux/amd64
 
 jobs:
   docker_build:
