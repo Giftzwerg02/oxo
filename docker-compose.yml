@@ -9,11 +9,16 @@ services:
       - discord_token
     labels:
       com.centurylinklabs.watchtower.enable: "true"
-  watchtower:
-    image: containrrr/watchtower
+  shepherd:
+    image: mazzolino/shepherd
+    environment:
+      - SLEEP_TIME=10s
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30 --cleanup --label-enable
+    deploy:
+      placement:
+        constraints:
+        - node.role == manager
 
 secrets:
   discord_token:
