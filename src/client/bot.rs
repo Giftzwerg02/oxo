@@ -103,8 +103,7 @@ pub async fn start_bot(state: Arc<Mutex<State>>) {
 
     let status = framework.clone().start();
 
-    // Ref Suggestion: Document / abstract CTRL-C handling
-    // As it's not immediately obvious what this does
+    // Handle Ctrl+C gracefully
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await
